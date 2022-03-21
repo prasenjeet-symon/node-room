@@ -27,10 +27,7 @@ export class HttpCacheManager {
             this.httpCache.get(http_instance)?.set(database_name, new HttpSelectManager());
         }
 
-        return this.httpCache
-            .get(http_instance)
-            ?.get(database_name)
-            ?.addDao(database_name, dao_name, daoConfig.id, daoConfig.strictLabels, daoConfig.universalLabels, param_object, daoConfig.paramLabels, result);
+        return this.httpCache.get(http_instance)?.get(database_name)?.addDao(database_name, dao_name, daoConfig.id, param_object, daoConfig.labels, result);
     }
 
     // get affected dao
@@ -43,7 +40,13 @@ export class HttpCacheManager {
             return undefined;
         }
 
-        return this.httpCache.get(http_instance)?.get(database_name)?.getDao(daoConfig.strictLabels, daoConfig.universalLabels, param_object);
+        return this.httpCache
+            .get(http_instance)
+            ?.get(database_name)
+            ?.getDao(
+                daoConfig.labels.map((p) => p.label),
+                param_object
+            );
     }
 
     // update affected dao with latest result

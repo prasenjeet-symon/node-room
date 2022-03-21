@@ -16,23 +16,60 @@ function throttle(Msec: number, pageNum: number) {
     });
 }
 
-// rick marty api
-@Dao({ id: 'id', mode: 'R', paramLabels: '', strictLabels: [], universalLabels: ['rick'] })
-class GetCharacters {
+// add new todo dao
+let allTodo = [
+    { id: 1, title: 'todo1', completed: false },
+    { id: 2, title: 'todo2', completed: false },
+];
+
+// get all todos
+@Dao({ id: 'id', mode: 'R', labels: [{ label: 'todo', when: (selfParamObject, mNodeParamObject) => true }] })
+export class GetTodo {
     @Query()
-    async fetch(pageNum: number) {
-        try {
-            const result = await throttle(5000, pageNum);
-            return result;
-        } catch (error) {
-            console.error(error);
-        }
+    fetch() {
+        return allTodo;
+    }
+}
+
+// update todo
+@Dao({ id: 'id', mode: 'U', labels: [{ label: 'todo', when: (selfParamObject, mNodeParamObject) => true }] })
+export class UpdateTodo {
+    @Query()
+    fetch(id: number, completed: boolean) {
+        allTodo = allTodo.map((p) => {
+            if (p.id === id) {
+                return { ...p, completed };
+            } else {
+                return p;
+            }
+        });
+    }
+}
+
+// delete todo
+@Dao({ id: 'id', mode: 'D', labels: [{ label: 'todo', when: (selfParamObject, mNodeParamObject) => true }] })
+export class DeleteTodo {
+    @Query()
+    fetch(id: number) {
+        allTodo = allTodo.filter((p) => p.id !== id);
+    }
+}
+
+// add new todo
+@Dao({ id: 'id', mode: 'C', labels: [{ label: 'todo', when: (selfParamObject, mNodeParamObject) => true }] })
+export class CreateTodo {
+    @Query()
+    fetch(title: string) {
+        allTodo = [...allTodo, { id: allTodo.length + 1, title, completed: false }];
     }
 }
 
 @Database()
 class AppDatabase {
-    public GetCharacters = GetCharacters;
+    public GetTodo = GetTodo;
+    public UpdateTodo = UpdateTodo;
+    public DeleteTodo = DeleteTodo;
+    public CreateTodo = CreateTodo;
 }
 
 const APP = express();

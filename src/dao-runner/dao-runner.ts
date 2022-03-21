@@ -47,7 +47,7 @@ export class DaoRequeryRunner {
                     daoName: cacheDao.daoName,
                     id: cacheDao.id,
                     paramObject: cacheDao.paramObject,
-                    paramLabel: cacheDao.paramLabel,
+                    label: cacheDao.label,
                     result: cacheDao.result,
                     latestResult: result,
                 });
@@ -60,7 +60,7 @@ export class DaoRequeryRunner {
                     daoName: cacheDao.daoName,
                     id: cacheDao.id,
                     paramObject: cacheDao.paramObject,
-                    paramLabel: cacheDao.paramLabel,
+                    label: cacheDao.label,
                     result: cacheDao.result,
                     latestResult: cacheDao.result,
                 });

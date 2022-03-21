@@ -1,9 +1,9 @@
 import { createHash } from 'crypto';
-import { SelectCache } from '../main-interface';
+import { Label, SelectCache } from '../main-interface';
+import { removeDuplicateValuesFromArray } from '../utils';
 
 export class HttpSelectManager {
     private strictLabels: Map<string, Set<string>> = new Map();
-    private universalLabels: Map<string, Set<string>> = new Map();
     private selectCache: Map<string, SelectCache> = new Map();
 
     constructor() {}
@@ -11,13 +11,10 @@ export class HttpSelectManager {
     /**
      *
      * @param daoName : Name of the dao to add
-     * @param strictLabels : Strict labels to add
-     * @param universalLabels : Universal labels to add
-     * @param paramObject : Param object to add
-     * @param paramLabel : Param label to add
+     * @param labels : Param label to add
      * @param result : dao query result
      */
-    public addDao(databaseName: string, daoName: string, id: string, strictLabels: string[], universalLabels: string[], paramObject: any, paramLabel: string, result: any) {
+    public addDao(databaseName: string, daoName: string, id: string, paramObject: any, labels: Label[], result: any) {
         const daoIdentifier = this.generateDaoIdentifier(databaseName, daoName, paramObject);
         // add the dao to the select cache
         // since the dao identifier is unique, we can use it as the key and map will replace the old value
@@ -27,9 +24,11 @@ export class HttpSelectManager {
             daoName,
             id,
             paramObject,
-            paramLabel,
+            label: labels,
             result: JSON.stringify(result),
         });
+
+        const strictLabels = labels.map((label) => label.label);
 
         // add the strict labels
         for (const label of strictLabels) {
@@ -40,73 +39,45 @@ export class HttpSelectManager {
             this.strictLabels.get(label)?.add(daoIdentifier);
         }
 
-        // add the universal labels
-        for (const label of universalLabels) {
-            if (!this.universalLabels.has(label)) {
-                this.universalLabels.set(label, new Set());
-            }
-
-            this.universalLabels.get(label)?.add(daoIdentifier);
-        }
-
         return daoIdentifier;
     }
     /**
      * Get the dao from the cache
      *
      */
-    public getDao(strictLabels: string[], universalLabels: string[], paramObject: any): SelectCache[] {
+    public getDao(strictLabels: string[], paramObject: any): SelectCache[] {
         // get the daos that match the strict labels
-        const allStrictLabelDaos = [];
+        const allStrictLabelDaos: { label: string; daoIdentifier: string }[] = [];
 
         for (const label of strictLabels) {
             if (this.strictLabels.has(label)) {
                 const daos = this.strictLabels.get(label);
                 if (daos) {
                     // set to an array
-                    const daoArray = Array.from(daos);
-                    allStrictLabelDaos.push(...daoArray);
+                    const daoArray = Array.from(daos); // list of all daoidentifiers
+                    allStrictLabelDaos.push(...daoArray.map((daoIdentifier) => ({ label, daoIdentifier })));
                 }
             }
         }
 
         // convert to a set, we need only unique values
-        const allStrictLabelDaosSet = new Set(allStrictLabelDaos);
+        const allStrictLabelDaosSet = removeDuplicateValuesFromArray(allStrictLabelDaos, 'daoIdentifier', 'label');
         const finalStrictLabelDaos: string[] = [];
 
         for (const daoIdentifier of allStrictLabelDaosSet) {
-            const dao = this.selectCache.get(daoIdentifier);
+            const dao = this.selectCache.get(daoIdentifier.daoIdentifier);
             if (dao) {
                 // we need to check the param label
-                const paramLabel = dao.paramLabel;
-                const prevParamObject = dao.paramObject;
-                const currenParamObject = paramObject;
-                if (prevParamObject[paramLabel] !== undefined && currenParamObject[paramLabel] !== undefined && prevParamObject[paramLabel] === currenParamObject[paramLabel]) {
-                    finalStrictLabelDaos.push(daoIdentifier);
+                const isMatch = dao.label.filter((p) => p.label === daoIdentifier.label).find((label) => label.when(dao.paramObject, paramObject));
+
+                if (isMatch) {
+                    finalStrictLabelDaos.push(daoIdentifier.daoIdentifier);
                 }
             }
         }
-
-        // get the daos that match the universal labels
-        const allUniversalLabelDaos: string[] = [];
-
-        for (const label of universalLabels) {
-            if (this.universalLabels.has(label)) {
-                const daos = this.universalLabels.get(label);
-                if (daos) {
-                    // set to an array
-                    const daoArray = Array.from(daos);
-                    allUniversalLabelDaos.push(...daoArray);
-                }
-            }
-        }
-
-        // convert to a set, we need only unique values
-        const allUniversalLabelDaosSet = new Set(allUniversalLabelDaos);
-        const finalUniversalLabelDaos: string[] = Array.from(allUniversalLabelDaosSet);
 
         // array of all final dao identifiers
-        const allDaos = Array.from(new Set([...finalStrictLabelDaos, ...finalUniversalLabelDaos]));
+        const allDaos = Array.from(new Set(finalStrictLabelDaos));
 
         // get the dao from the cache
         const allDaosFinal: SelectCache[] = [];

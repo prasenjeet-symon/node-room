@@ -26,7 +26,7 @@ export class BootstrapNode {
         for (const database of config.databases) {
             const databaseClient = new DatabaseClient(new database());
             DatabaseManager.getInstance().addDatabase(databaseClient.getDatabaseName(), databaseClient);
-        }  
+        }
 
         // start listing http requests
         this.app.post('/node-room', (req, res) => {

@@ -420,3 +420,16 @@ export function isDeltaEmpty(delta: any) {
         return Object.keys(delta).length === 0;
     }
 }
+
+// remove duplicate values from array
+export function removeDuplicateValuesFromArray<T>(array: T[], ...args: string[]) {
+    return array.filter((value: any, index: number, self: any[]) => {
+        return (
+            self.findIndex((ele: any) => {
+                return args.every((key: string) => {
+                    return ele[key] === value[key];
+                });
+            }) === index
+        );
+    });
+}
