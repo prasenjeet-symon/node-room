@@ -1,5 +1,3 @@
-import { ConnectMysql } from './MYSQL/connect-mysql';
-
 export class DatabaseManager {
     private static _instance: DatabaseManager;
     private databases: Map<string, DatabaseClient> = new Map();
@@ -24,25 +22,12 @@ export class DatabaseManager {
 }
 
 export class DatabaseClient {
-    constructor(private database_instance: any, private migrate: boolean = false) {
-        // create all the tables
-        const database_name = this.database_instance.getDatabaseName();
-        const allTableCreationQuery = this.database_instance.allTableCreationQuery();
+    constructor(private database_instance: any) {}
 
-        const MYSQL = ConnectMysql.getInstance();
-        const sqlQueryMaker = MYSQL.getSQLQueryMaker(database_name);
-
-        if (this.migrate) {
-            sqlQueryMaker.query(allTableCreationQuery).then(() => console.log('all tables created'));
-        }
-    }
-
-    // get database name
     public getDatabaseName(): string {
         return this.database_instance.getDatabaseName();
     }
 
-    // get dao
     public getDao(dao_name: string): any {
         return this.database_instance.getDao(dao_name);
     }

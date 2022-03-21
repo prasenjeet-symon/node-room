@@ -1,31 +1,26 @@
-export function Database(config: { Tables: any[] }) {
+/**
+ * This is class decorator
+ * This help us create a database class for the node room
+ */
+export function Database() {
     return function <T extends { new (...args: any[]): {} }>(constructor: T): T {
         return class extends constructor {
-            // get the class name
-            private getDatabaseName(): string {
+            /**
+             * Get the database
+             */
+            public getDatabaseName(): string {
                 return this.constructor.name;
             }
 
-            constructor(...agrs: any[]) {
-                super(agrs);
+            constructor(...args: any[]) {
+                super(args);
             }
 
-            private get_all_tables = () => {
-                return config.Tables.map((p) => p.entity);
-            };
-
-            private allTableCreationQuery = () => {
-                return config.Tables.map((table_class) => {
-                    const table_creation_command = new table_class().generateTableQuery();
-                    return table_creation_command;
-                }).join(' ');
-            };
-
-            private getDao = (dao_name: string) => {
-                const found_dao = (this as any)[dao_name];
-                if (found_dao) {
-                    found_dao.prototype.database_name = this.getDatabaseName();
-                    return found_dao;
+            public getDao = (daoName: string) => {
+                const foundDao = (this as any)[daoName];
+                if (foundDao) {
+                    foundDao.prototype.database_name = this.getDatabaseName();
+                    return foundDao;
                 } else {
                     return undefined;
                 }

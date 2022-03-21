@@ -1,38 +1,42 @@
-export interface MYSQLConnectionConfig {
-    host: string;
-    port: number;
-    password: string;
-    user: string;
+export interface SelectCache {
+    daoIdentifier: string;
+    databaseName: string;
+    daoName: string;
+    id: string;
+    paramObject: any;
+    paramLabel: string;
+    result: any;
+}
+export interface SelectCacheRequery {
+    daoIdentifier: string;
+    databaseName: string;
+    daoName: string;
+    id: string;
+    paramObject: any;
+    paramLabel: string;
+    result: any;
+    latestResult: any;
 }
 
-export type table_config = {
-    primaryKey: string;
-    tableCode: string;
-};
+export type DaoMode = 'T' | 'C' | 'R' | 'U' | 'D';
 
-export type column_config = {
-    dataType: any;
-    columnID: string;
-    isNotNull?: boolean;
-    defaultValue?: any;
-};
-
-export interface TableConfig {
-    tableName: string;
-    primaryKey: string;
-    ColumnInfo: {
-        dataType: any;
-        columnID: string;
-        columnName: string;
-        isNotNull: boolean;
-        defaultValue: any;
-    }[];
+// dao query config
+export interface DaoConfig {
+    mode: DaoMode;
+    strictLabels: string[];
+    universalLabels: string[];
+    paramLabels: string;
+    id: string;
 }
 
-export interface DaoRunData {
-    database_name: string;
-    name: string;
-    data: any;
+// dao client run data
+export interface DaoClientRunData {
+    databaseName: string;
+    daoName: string;
+    paramObject: any;
 }
 
-export type QueryType = 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE';
+// dao client run data result
+export interface DaoClientRunDataResult {
+    result: any;
+}

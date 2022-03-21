@@ -1,118 +1,4 @@
-import mysql from 'mysql2';
-
-export const MYSQL_DATATYPE = {
-    POINT: (SRID: number = 0) => {
-        return `POINT`;
-    },
-
-    CHAR: (size: number = 1) => {
-        if (size >= 0 && size <= 255 && is_pure_number(size)) {
-            return `CHAR(${size})`;
-        } else {
-            new Error('CHAR DATATYPE size should be [0, 255]');
-        }
-    },
-
-    VARCHAR: (size: number) => {
-        if (size >= 0 && size <= 65535 && is_pure_number(size)) {
-            return `VARCHAR(${size})`;
-        } else {
-            new Error('VARCHAR DATATYPE size should be [0, 65535]');
-        }
-    },
-
-    TINYTEXT: `TINYTEXT`,
-
-    TEXT: (size?: number) => {
-        if (size) {
-            if (size >= 0 && size <= 65535 && is_pure_number(size)) {
-                return `TEXT(${size})`;
-            } else {
-                new Error('TEXT DATATYPE size should be [0, 65535]');
-            }
-        } else {
-            return `TEXT`;
-        }
-    },
-
-    MEDIUMTEXT: `MEDIUMTEXT`,
-
-    LONGTEXT: `LONGTEXT`,
-
-    ENUM: (enum_list: string[]) => {
-        if (enum_list.length >= 1 && enum_list.length <= 65535) {
-            return `ENUM( ${enum_list.map((p) => `'${p}'`).join(', ')})`;
-        } else {
-            new Error('ENUM DATATYPE size should be [0, 65535]');
-        }
-    },
-
-    TINYINT: (signed: boolean = true) => {
-        if (signed) {
-            return `TINYINT`;
-        } else {
-            return `TINYINT UNSIGNED`;
-        }
-    },
-
-    BOOL: `BOOL`,
-
-    BOOLEAN: `BOOLEAN`,
-
-    SMALLINT: (signed: boolean = true) => {
-        if (signed) {
-            return `SMALLINT`;
-        } else {
-            return `SMALLINT UNSIGNED`;
-        }
-    },
-
-    MEDIUMINT: (signed: boolean = true) => {
-        if (signed) {
-            return `MEDIUMINT`;
-        } else {
-            return `MEDIUMINT UNSIGNED`;
-        }
-    },
-
-    INT: (signed: boolean = true) => {
-        if (signed) {
-            return `INT`;
-        } else {
-            return `INT UNSIGNED`;
-        }
-    },
-
-    BIGINT: (signed: boolean = true) => {
-        if (signed) {
-            return `BIGINT`;
-        } else {
-            return `BIGINT UNSIGNED`;
-        }
-    },
-
-    FLOAT: (signed: boolean = true) => {
-        if (signed) {
-            return `FLOAT`;
-        } else {
-            return `FLOAT UNSIGNED`;
-        }
-    },
-
-    DOUBLE: (signed: boolean = true) => {
-        if (signed) {
-            return `DOUBLE`;
-        } else {
-            return `DOUBLE UNSIGNED`;
-        }
-    },
-
-    DATE: 'DATE',
-    DATETIME: 'DATETIME',
-    TIMESTAMP: 'TIMESTAMP',
-    TIME: 'TIME',
-    YEAR: 'YEAR',
-};
+import { createHash } from 'crypto';
 
 export const is_pure_number = (str: string | number) => {
     if (isNaN(Number(str))) {
@@ -122,10 +8,6 @@ export const is_pure_number = (str: string | number) => {
     }
 };
 
-export const table_config_key = (class_name: string) => {
-    return `${class_name.trim()}_table_config`;
-};
-
 export const define_property_on_object = (object: Object, property_key: string, value: any) => {
     Object.defineProperty(object, property_key.trim(), {
         value,
@@ -133,24 +15,6 @@ export const define_property_on_object = (object: Object, property_key: string, 
         writable: true,
     });
 };
-
-export function parse_sql_string(value: any) {
-    if (value === null || value === undefined || value === '' || value === 'NULL' || value === 'null') {
-        return `NULL`;
-    }
-
-    // if the value is boolean
-    if (typeof value === 'boolean') {
-        return value ? `TRUE` : `FALSE`;
-    }
-
-    if (!is_pure_number(value)) {
-        //pure string
-        return `'${value.replace(new RegExp("'", 'ig'), "''")}'`;
-    } else {
-        return +value;
-    }
-}
 
 export function is_there_space_in_string(str: string) {
     const found_space = str.trim().includes(' ');
@@ -167,28 +31,6 @@ export function extract_function_param_names(constructor: any) {
     const argument = function_string.substring(function_string.indexOf('(') + 1, function_string.indexOf(')'));
     const params_names = argument.trim().split(',');
     return params_names.map((p) => p.trim());
-}
-
-// TOOD: do not delete this function
-export function detect_query_type(query: string) {
-    const first_element = query.split(' ')[0];
-
-    switch (first_element.toUpperCase()) {
-        case 'SELECT':
-            return 'SELECT';
-
-        case 'UPDATE':
-            return 'UPDATE';
-
-        case 'DELETE':
-            return 'DELETE';
-
-        case 'INSERT':
-            return 'INSERT';
-
-        default:
-            return 'UNKNOWN';
-    }
 }
 
 export function is_two_array_intersect(arr_left: (string | number)[], arr_right: (string | number)[]) {
@@ -256,174 +98,325 @@ export function valueType(value: any) {
     }
 }
 
-// function to merge the property of new data and old data
+/**
+ * Generate positional ref
+ *
+ */
+export function generatePositionalRef(newArr: any[], newEle: any[]) {
+    newEle.forEach((ele) => {
+        const index = newArr.findIndex((val) => val.id === ele.id);
+        const upperEleIndex = newArr[index - 1];
+        ele.pRef = upperEleIndex === undefined ? null : upperEleIndex.id;
+    });
+
+    return newEle;
+}
+
 export function mergeKeysOfObjects(old_data: any, new_data: any) {
     Object.keys(old_data).forEach((key) => {
-        if (new_data[key] === undefined) {
-            // there is no key in new data
-            // create new one with same key and value equal to null
+        if (!new_data.hasOwnProperty(key)) {
             new_data[key] = null;
         }
     });
 
     Object.keys(new_data).forEach((key) => {
-        if (old_data[key] === undefined) {
-            // there is no key in old data
-            // create new one with same key and value equal to null
+        if (!old_data.hasOwnProperty(key)) {
             old_data[key] = null;
         }
     });
 
-    return { old_data, new_data };
+    return {
+        old_data,
+        new_data,
+    };
 }
 
-// find the delta in database data
-
-export function findDelta(prev_data: any, final_data: any) {
-    if (valueType(prev_data) !== valueType(final_data)) {
-        return { isDelta: true, data: final_data };
-    }
-
-    // value type of both prev and final data is same
-    if (valueType(final_data) === 'primitive') {
-        if (final_data !== prev_data) {
-            return { isDelta: true, data: final_data };
-        } else {
-            return { isDelta: false, data: final_data };
+export function mergeMissingValues(old_data: any, new_data: any) {
+    Object.keys(new_data).forEach((key) => {
+        if (!old_data.hasOwnProperty(key)) {
+            old_data[key] = new_data[key];
         }
+    });
+
+    Object.keys(old_data).forEach((key) => {
+        if (!new_data.hasOwnProperty(key)) {
+            new_data[key] = old_data[key];
+        }
+    });
+
+    return {
+        old_data,
+        new_data,
+    };
+}
+
+export function findDelta(oldData: any, newData: any, id: string) {
+    // if the value type of old data and new data is different then return new data
+    if (valueType(oldData) !== valueType(newData)) {
+        return newData;
     }
 
-    if (valueType(final_data) === 'array') {
-        const isAllElementObjectFinalData = final_data.every((element: any) => {
+    // ok , value type of old data and new data is same
+    // if the value type of old data is primitive then return new data
+    if (valueType(oldData) === 'primitive') {
+        return newData;
+    }
+
+    // ok , value type of old data is not primitive now , so it is object or array
+
+    // if the value type of old data is array
+    if (valueType(oldData) === 'array') {
+        // this means new data is array also
+        const isAllElementObjectFinalData = newData.every((element: any) => {
             return isObject(element);
         });
 
-        const isAllElementObjectPrevData = prev_data.every((element: any) => {
+        const isAllElementObjectPrevData = oldData.every((element: any) => {
             return isObject(element);
         });
 
+        // if the elements of both array are object then we can compare them
         if (isAllElementObjectFinalData && isAllElementObjectPrevData) {
-            const isIdsFinalData = final_data.every((element: any) => {
-                return element.hasOwnProperty('id');
+            // every elements of both array should contain id as provided in id param
+            const isIdsFinalData = newData.every((element: any) => {
+                return element.hasOwnProperty(id);
             });
 
-            const isIdsPrevData = prev_data.every((element: any) => {
-                return element.hasOwnProperty('id');
+            const isIdsPrevData = oldData.every((element: any) => {
+                return element.hasOwnProperty(id);
             });
 
             if (isIdsFinalData && isIdsPrevData) {
                 const newElements: any[] = [];
 
-                final_data.forEach((element: any) => {
-                    const found = prev_data.filter((prev_ele: any) => prev_ele.id === element.id);
+                newData.forEach((element: any) => {
+                    const found = oldData.filter((prev_ele: any) => prev_ele[id] === element[id]);
                     if (found.length === 0) {
-                        // new element
-                        element['NR_new'] = true;
+                        // this is new element
+                        element['nr'] = true;
                         newElements.push(element);
                     }
                 });
 
+                // attach the positional ref to new elements
+                const referencedEle = generatePositionalRef(newData, newElements);
+
                 const deletedElements: any[] = [];
-                // deleted one
-                prev_data.forEach((element: any) => {
-                    const found = final_data.filter((final_ele: any) => final_ele.id === element.id);
+                oldData.forEach((element: any) => {
+                    const found = newData.filter((final_ele: any) => final_ele[id] === element[id]);
                     if (found.length === 0) {
-                        // deleted element
-                        deletedElements.push({ id: element.id, NR_deleted: true });
+                        // this is deleted element
+                        deletedElements.push({ dr: true, id: element[id] });
                     }
                 });
 
                 const updatedElements: any[] = [];
-
-                final_data.forEach((element: any) => {
-                    const found = (prev_data as any[]).find((prev_ele: any) => prev_ele.id === element.id);
-                    if (found) {
-                        // found element
-                        const deltaObj = findDelta(found, element);
+                newData.forEach((element: any) => {
+                    const foundOld = oldData.find((prev_ele: any) => prev_ele[id] === element[id]);
+                    if (foundOld) {
+                        // element is in old data
+                        // check for the difference as two objects
+                        const deltaObj = findDelta(foundOld, element, id);
                         if (Object.keys(deltaObj).length !== 0) {
-                            deltaObj['id'] = element.id;
-                            deltaObj['NR_new'] = false;
-
+                            // because if there is no difference then it will return empty object
+                            // hence we are checking for the length of object
+                            deltaObj[id] = element[id];
+                            deltaObj['nr'] = false; // indicates that this is not new element
                             updatedElements.push(deltaObj);
                         }
                     }
                 });
 
-                return [...newElements, ...deletedElements, ...updatedElements];
-
-                // code
+                return [...referencedEle, ...deletedElements, ...updatedElements];
             } else {
-                return { isDelta: true, data: final_data };
+                return newData;
             }
         } else {
-            return { isDelta: true, data: final_data };
+            // if the elements of both array are not object then we can not compare them
+            // just return the new data
+            // element of arr may be primitive or array ( multidimensional array )
+            return newData;
         }
     }
 
-    if (valueType(final_data) === 'object') {
-        // both old and new data are object
-        const { old_data, new_data } = mergeKeysOfObjects(prev_data, final_data);
+    // if the value type of old data is object
+    if (valueType(oldData) === 'object') {
+        // this means new data is object also
+        // we are dealing with objects here
+        // both object should have same keys
+        // if the keys are same then we can compare them
+
+        // merge the keys of both object to each other
+        const { old_data, new_data } = mergeKeysOfObjects(oldData, newData);
         const deltaFinalObj: any = {};
 
-        Object.keys(new_data).forEach((key: any) => {
-            const newDataValue = new_data[key];
-            const oldDataValue = old_data[key];
+        Object.keys(new_data).forEach((key) => {
+            const oldValue = old_data[key];
+            const newValue = new_data[key];
 
-            const deltaObj = findDelta(oldDataValue, newDataValue);
-
-            //deltaObj can be of type primitive, array , object
-            if (deltaObj.hasOwnProperty('isDelta')) {
-                if (deltaObj.isDelta) {
-                    deltaFinalObj[key] = deltaObj.data;
+            // we need to recursively call this function to find the delta
+            const delta = findDelta(oldValue, newValue, id);
+            // if the delta is primitive
+            if (valueType(delta) === 'primitive' && delta !== oldValue) {
+                deltaFinalObj[key] = delta;
+            } else if (valueType(delta) === 'primitive' && delta === oldValue) {
+            } else if (valueType(delta) === 'array') {
+                deltaFinalObj[key] = delta;
+            } else if (valueType(delta) === 'object') {
+                if (Object.keys(delta).length !== 0) {
+                    // if the delta is not empty object
+                    // then we need to add this key to deltaFinalObj
+                    // because there is change in the value of this key
+                    deltaFinalObj[key] = delta;
                 }
-            } else if (valueType(deltaObj) === 'object') {
-                if (Object.keys(deltaObj).length !== 0) {
-                    deltaFinalObj[key] = deltaObj;
-                }
-            } else if (valueType(deltaObj) === 'array') {
-                deltaFinalObj[key] = deltaObj;
+            } else {
+                deltaFinalObj[key] = delta;
             }
         });
 
         return deltaFinalObj;
     }
+
+    return newData;
 }
 
-// standalone function to connect to database
-export function connectToDatabase() {
-    return new Promise<mysql.Connection>((resolve, reject) => {
-        const connection = mysql.createConnection({
-            user: process.env.MYSQL_USER,
-            host: process.env.MYSQL_HOST || 'localhost',
-            password: process.env.MYSQL_PASSWORD || '',
-            port: Number(process.env.MYSQL_PORT) || 3306,
-            multipleStatements: true,
+export function findNewValueFromDelta(oldValue: any, delta: any, id: string) {
+    if (valueType(delta) !== valueType(oldValue)) {
+        return delta;
+    }
+
+    // if the value is primitive then return the delta
+    if (valueType(delta) === 'primitive') {
+        return delta;
+    }
+
+    // if the value is array
+    if (valueType(delta) === 'array') {
+        const isAllElementObjects = oldValue.every((element: any) => {
+            return isObject(element);
         });
 
-        connection.connect((err) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(connection);
-            }
+        const isAllElementObjectDelta = delta.every((element: any) => {
+            return isObject(element);
         });
-    });
+
+        if (isAllElementObjects && isAllElementObjectDelta) {
+            const isOldEleIds = oldValue.every((element: any) => {
+                return element.hasOwnProperty(id);
+            });
+
+            const isNewEleIds = delta.every((element: any) => {
+                return element.hasOwnProperty(id);
+            });
+
+            if (isOldEleIds && isNewEleIds) {
+                const allNewElements: any[] = delta.filter((element: any) => {
+                    return element.hasOwnProperty('nr') && element.nr === true;
+                });
+
+                const allDeleteElements: any[] = delta.filter((element: any) => {
+                    return element.hasOwnProperty('dr') && element.dr === true;
+                });
+
+                const allUpdatedElements: any[] = delta.filter((element: any) => {
+                    return element.hasOwnProperty('nr') && element.nr === false;
+                });
+
+                const newElements: any[] = [];
+
+                // merge the new item at the proper position
+                allNewElements.forEach((element: any) => {
+                    const ref = element.pRef;
+                    if (ref === null) {
+                        // push to the top of the array
+                        // delete the ref and nr key
+                        delete element.pRef;
+                        delete element.nr;
+                        oldValue.unshift(element);
+                    } else {
+                        // there is relation
+                        const indexOfRef = oldValue.findIndex((ele: any) => ele[id] === ref);
+                        if (indexOfRef !== -1) {
+                            delete element.pRef;
+                            delete element.nr;
+                            // if the index is found then insert the element at that index
+                            oldValue = [...oldValue.slice(0, indexOfRef + 1), element, ...oldValue.slice(indexOfRef + 1)];
+                        }
+                    }
+                });
+
+                oldValue.forEach((element: any) => {
+                    const foundDeleted = allDeleteElements.find((ele: any) => ele[id] === element[id]);
+                    if (!foundDeleted) {
+                        // this element is not deleted
+                        // check for the updated elements
+                        const foundUpdated = allUpdatedElements.find((ele: any) => ele[id] === element[id]);
+                        if (foundUpdated) {
+                            // this element is updated
+                            // so we need to add this element to newElements
+                            delete foundUpdated.nr;
+                            // merge the old and updated element
+                            Object.keys(foundUpdated).forEach((uKey) => {
+                                const oldEleKeyVal = element[uKey];
+                                const newEleKeyVal = foundUpdated[uKey];
+                                const newValue = findNewValueFromDelta(oldEleKeyVal, newEleKeyVal, id);
+                                element[uKey] = newValue;
+                            });
+                            newElements.push(element);
+                        } else {
+                            // this element is not updated
+                            // so we need to add this element to newElements
+                            newElements.push(element);
+                        }
+                    }
+                });
+
+                return newElements;
+            } else {
+                return delta;
+            }
+        } else {
+            // delta elements is either primitive or array ( no change )
+            return delta;
+        }
+    }
+
+    if (valueType(delta) === 'object') {
+        // merge the keys of both object to each other
+        const { old_data, new_data } = mergeMissingValues(oldValue, delta);
+        const deltaFinalObj: any = {};
+
+        Object.keys(new_data).forEach((key) => {
+            // we need to recursively call this function to find the delta
+            deltaFinalObj[key] = findNewValueFromDelta(old_data[key], new_data[key], id);
+        });
+
+        return deltaFinalObj;
+    }
+
+    return delta;
 }
 
-// create new database for the connection to complete
-export async function createNewDatabase(databaseName: string) {
-    const connection = await connectToDatabase();
-    // SQL query to create database if not exists
-    const sql = `CREATE DATABASE IF NOT EXISTS ${databaseName}`;
-    await new Promise<void>((resolve, reject) => {
-        connection.query(sql, (err, results) => {
-            if (err) {
-                connection.end();
-                reject(err);
-            } else {
-                connection.end();
-                resolve();
-            }
-        });
-    });
+// generate the hash of the data
+export function generateHash(clientInstanceUUID: string, databaseName: string, daoName: string, paramObject: any) {
+    const hash = createHash('sha256');
+    hash.update(String(clientInstanceUUID));
+    hash.update(databaseName);
+    hash.update(daoName);
+    hash.update(JSON.stringify(paramObject));
+    return hash.digest('hex');
+}
+
+// is delta have value
+// delta value will be either primitive , array , object
+// ex -> 2 , { name : 'abc' } , [ { name : 'abc' } ] , [ 2 ] , [ something ]
+
+export function isDeltaEmpty(delta: any) {
+    if (isPrimitive(delta)) {
+        return false;
+    } else if (isArray(delta)) {
+        return delta.length === 0;
+    } else if (isObject(delta)) {
+        return Object.keys(delta).length === 0;
+    }
 }

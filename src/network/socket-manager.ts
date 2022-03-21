@@ -1,6 +1,5 @@
 import { Socket } from 'socket.io';
 import { DatabaseManager } from '../database';
-import { QueryType } from '../main-interface';
 import { SocketSelectManager } from '../select-managers/socket-select-manager';
 
 export class SocketNetworkManager {
@@ -62,7 +61,7 @@ export class SocketClient {
             daoIns.param_object = param_object;
 
             const result = await daoIns.fetch();
-            const query_type: QueryType = daoIns.query_type;
+            const query_type: any = daoIns.query_type;
             const mutation_tables: string[] = daoIns.mutationTables;
             const dao_type = query_type !== 'SELECT' ? 'M' : 'Q';
 

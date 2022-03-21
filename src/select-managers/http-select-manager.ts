@@ -1,114 +1,141 @@
-import { DatabaseManager } from '../database';
-import { findDelta } from '../utils';
-
-export interface SelectManager {
-    tables: string[];
-    database_name: string;
-    name: string;
-    data: any;
-    latest_result: any;
-}
+import { createHash } from 'crypto';
+import { SelectCache } from '../main-interface';
 
 export class HttpSelectManager {
-    // first map identifier is browser instance id and second is the  database_name + name
-    private selectManagers: Map<string, Map<string, SelectManager>> = new Map();
-    private static instance: HttpSelectManager;
+    private strictLabels: Map<string, Set<string>> = new Map();
+    private universalLabels: Map<string, Set<string>> = new Map();
+    private selectCache: Map<string, SelectCache> = new Map();
 
-    public static getInstance(): HttpSelectManager {
-        if (!HttpSelectManager.instance) {
-            HttpSelectManager.instance = new HttpSelectManager();
+    constructor() {}
+
+    /**
+     *
+     * @param daoName : Name of the dao to add
+     * @param strictLabels : Strict labels to add
+     * @param universalLabels : Universal labels to add
+     * @param paramObject : Param object to add
+     * @param paramLabel : Param label to add
+     * @param result : dao query result
+     */
+    public addDao(databaseName: string, daoName: string, id: string, strictLabels: string[], universalLabels: string[], paramObject: any, paramLabel: string, result: any) {
+        const daoIdentifier = this.generateDaoIdentifier(databaseName, daoName, paramObject);
+        // add the dao to the select cache
+        // since the dao identifier is unique, we can use it as the key and map will replace the old value
+        this.selectCache.set(daoIdentifier, {
+            daoIdentifier,
+            databaseName,
+            daoName,
+            id,
+            paramObject,
+            paramLabel,
+            result: JSON.stringify(result),
+        });
+
+        // add the strict labels
+        for (const label of strictLabels) {
+            if (!this.strictLabels.has(label)) {
+                this.strictLabels.set(label, new Set());
+            }
+
+            this.strictLabels.get(label)?.add(daoIdentifier);
         }
-        return HttpSelectManager.instance;
-    }
 
-    public deleteAllSelects(clientInstanceUUID: string) {
-        this.selectManagers.delete(clientInstanceUUID);
-    }
+        // add the universal labels
+        for (const label of universalLabels) {
+            if (!this.universalLabels.has(label)) {
+                this.universalLabels.set(label, new Set());
+            }
 
-    public addSelect(clientInstanceUUID: string, daoData: SelectManager) {
-        if (!this.selectManagers.has(clientInstanceUUID)) {
-            this.selectManagers.set(clientInstanceUUID, new Map());
+            this.universalLabels.get(label)?.add(daoIdentifier);
         }
 
-        // if already present then replace with new values
-        this.selectManagers.get(clientInstanceUUID)?.set(daoData.database_name + daoData.name, daoData);
+        return daoIdentifier;
     }
+    /**
+     * Get the dao from the cache
+     *
+     */
+    public getDao(strictLabels: string[], universalLabels: string[], paramObject: any): SelectCache[] {
+        // get the daos that match the strict labels
+        const allStrictLabelDaos = [];
 
-    public deleteSelect(clientInstanceUUID: string, database_name: string, name: string) {
-        if (this.selectManagers.has(clientInstanceUUID)) {
-            const selectsMap = this.selectManagers.get(clientInstanceUUID);
-            if (selectsMap) {
-                selectsMap.delete(database_name + name);
+        for (const label of strictLabels) {
+            if (this.strictLabels.has(label)) {
+                const daos = this.strictLabels.get(label);
+                if (daos) {
+                    // set to an array
+                    const daoArray = Array.from(daos);
+                    allStrictLabelDaos.push(...daoArray);
+                }
             }
         }
+
+        // convert to a set, we need only unique values
+        const allStrictLabelDaosSet = new Set(allStrictLabelDaos);
+        const finalStrictLabelDaos: string[] = [];
+
+        for (const daoIdentifier of allStrictLabelDaosSet) {
+            const dao = this.selectCache.get(daoIdentifier);
+            if (dao) {
+                // we need to check the param label
+                const paramLabel = dao.paramLabel;
+                const prevParamObject = dao.paramObject;
+                const currenParamObject = paramObject;
+                if (prevParamObject[paramLabel] !== undefined && currenParamObject[paramLabel] !== undefined && prevParamObject[paramLabel] === currenParamObject[paramLabel]) {
+                    finalStrictLabelDaos.push(daoIdentifier);
+                }
+            }
+        }
+
+        // get the daos that match the universal labels
+        const allUniversalLabelDaos: string[] = [];
+
+        for (const label of universalLabels) {
+            if (this.universalLabels.has(label)) {
+                const daos = this.universalLabels.get(label);
+                if (daos) {
+                    // set to an array
+                    const daoArray = Array.from(daos);
+                    allUniversalLabelDaos.push(...daoArray);
+                }
+            }
+        }
+
+        // convert to a set, we need only unique values
+        const allUniversalLabelDaosSet = new Set(allUniversalLabelDaos);
+        const finalUniversalLabelDaos: string[] = Array.from(allUniversalLabelDaosSet);
+
+        // array of all final dao identifiers
+        const allDaos = Array.from(new Set([...finalStrictLabelDaos, ...finalUniversalLabelDaos]));
+
+        // get the dao from the cache
+        const allDaosFinal: SelectCache[] = [];
+        for (const daoIdentifier of allDaos) {
+            const dao = this.selectCache.get(daoIdentifier);
+            if (dao) {
+                allDaosFinal.push(dao);
+            }
+        }
+
+        // return the dao
+        return allDaosFinal;
     }
 
-    private getSelectForRequery(clientInstanceUUID: string, tables: string[]) {
-        if (this.selectManagers.has(clientInstanceUUID)) {
-            const selectsMap = this.selectManagers.get(clientInstanceUUID);
-
-            const selectToRequery: SelectManager[] = [];
-
-            selectsMap?.forEach((val, key) => {
-                const selectManagerSet = new Set(val.tables);
-                const tablesSet = new Set(tables);
-                const intersection = new Set([...selectManagerSet].filter((x) => tablesSet.has(x)));
-
-                if (intersection.size > 0) {
-                    selectToRequery.push(val);
-                }
-            });
-
-            return selectToRequery;
-        } else {
-            const selectToRequery: SelectManager[] = [];
-            return selectToRequery;
+    // update the daos with latest result
+    public updateDao(daoIdentifier: string, result: any) {
+        const dao = this.selectCache.get(daoIdentifier);
+        if (dao) {
+            dao.result = JSON.stringify(result);
         }
     }
-
-    public async getDelta(clientInstanceUUID: string, tables: string[]) {
-        const selectToRequery = this.getSelectForRequery(clientInstanceUUID, tables);
-
-        let daosToRequery: { daoClass: any; selectManager: SelectManager }[] = [];
-        const database = DatabaseManager.getInstance();
-
-        selectToRequery.forEach((p) => {
-            const databaseName = p.database_name;
-            const daoName = p.name;
-            daosToRequery.push({ daoClass: database.getDao(databaseName, daoName), selectManager: p });
-        });
-
-        daosToRequery = daosToRequery.filter((p) => p.daoClass);
-
-        const finalResults = await Promise.all(
-            daosToRequery.map((p) => {
-                const daoIns = new p.daoClass();
-                daoIns.param_object = p.selectManager.data;
-                return daoIns.fetch();
-            })
-        );
-
-        const forDelta = finalResults.map((p, i) => {
-            return { ...daosToRequery[i], finalData: p };
-        });
-
-        const withDelta = forDelta.map((p) => {
-            const delta = findDelta(p.selectManager.latest_result, p.finalData);
-            return { ...p, delta };
-        });
-
-        return withDelta.map((p) => {
-            const selectMangerNew: SelectManager = {
-                data: p.selectManager.data,
-                database_name: p.selectManager.database_name,
-                name: p.selectManager.name,
-                tables: p.selectManager.tables,
-                latest_result: p.finalData,
-            };
-
-            this.addSelect(clientInstanceUUID, selectMangerNew);
-
-            return { database_name: p.selectManager.database_name, name: p.selectManager.name, delta: p.delta };
-        });
+    /**
+     * Generate the dao identifier
+     */
+    public generateDaoIdentifier(databaseName: string, daoName: string, paramObject: any): string {
+        const hash = createHash('sha256');
+        hash.update(databaseName);
+        hash.update(daoName);
+        hash.update(JSON.stringify(paramObject));
+        return hash.digest('hex');
     }
 }
