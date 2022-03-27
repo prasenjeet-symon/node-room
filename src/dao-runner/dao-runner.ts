@@ -1,72 +1,68 @@
-import { DatabaseManager } from '../database';
-import { DaoConfig, SelectCache, SelectCacheRequery } from '../main-interface';
+import { NodeConfig, SelectCache, SelectCacheRequery } from '../main-interface';
+import { RoomManager } from '../room';
 
-export class DaoRunner {
-    private dao: any;
-    private daoInstance: any;
+export class NodeRunner {
+    private node: any;
+    private nodeInstance: any;
 
-    constructor(private databaseName: string, private daoName: string, private paramObject: any) {
-        this.dao = DatabaseManager.getInstance().getDao(databaseName, daoName);
+    constructor(private roomName: string, private nodeName: string, private paramObject: any) {
+        this.node = RoomManager.getInstance().getNode(roomName, nodeName); // node as class
     }
 
     public async run() {
         try {
-            const daoToRun = new this.dao();
-            // set the property on the dao instance
-            // we set any property on the dao instance to be able to access it from the dao
-            daoToRun.param_object = this.paramObject;
-            const result = await daoToRun.fetch();
-            this.daoInstance = daoToRun;
-
+            const nodeToRun = new this.node(); // create the instance of the node
+            nodeToRun.param_object = this.paramObject;
+            const result = await nodeToRun.fetch();
+            this.nodeInstance = nodeToRun;
             return result;
         } catch (error) {
             throw error;
         }
     }
 
-    public getDaoConfig(): DaoConfig {
-        return this.daoInstance.daoConfig;
+    public getNodeConfig(): NodeConfig {
+        return this.nodeInstance.nodeConfig;
     }
 }
 
-export class DaoRequeryRunner {
-    private requeriedDaos: SelectCacheRequery[] = [];
+export class NodeRequeryRunner {
+    private requeriedNodes: SelectCacheRequery[] = []; // result after requerying
 
-    constructor(private cachedDaos: SelectCache[]) {}
+    constructor(private cachedNodes: SelectCache[]) {}
 
-    // re run the daos
-    // TODO : use promise all
     public async reQuery() {
-        for (const cacheDao of this.cachedDaos) {
-            const daoToRun = new DaoRunner(cacheDao.databaseName, cacheDao.daoName, cacheDao.paramObject);
+        for (const cachedNode of this.cachedNodes) {
+            const daoToRun = new NodeRunner(cachedNode.roomName, cachedNode.nodeName, cachedNode.paramObject);
+
             try {
                 const result = await daoToRun.run();
-                this.requeriedDaos.push({
-                    daoIdentifier: cacheDao.daoIdentifier,
-                    databaseName: cacheDao.databaseName,
-                    daoName: cacheDao.daoName,
-                    id: cacheDao.id,
-                    paramObject: cacheDao.paramObject,
-                    label: cacheDao.label,
-                    result: cacheDao.result,
+
+                this.requeriedNodes.push({
+                    nodeIdentifier: cachedNode.nodeIdentifier,
+                    roomName: cachedNode.roomName,
+                    nodeName: cachedNode.nodeName,
+                    id: cachedNode.id,
+                    paramObject: cachedNode.paramObject,
+                    label: cachedNode.label,
+                    result: cachedNode.result,
                     latestResult: result,
                 });
             } catch (error) {
-                console.log(error);
                 // do not throw error
-                this.requeriedDaos.push({
-                    daoIdentifier: cacheDao.daoIdentifier,
-                    databaseName: cacheDao.databaseName,
-                    daoName: cacheDao.daoName,
-                    id: cacheDao.id,
-                    paramObject: cacheDao.paramObject,
-                    label: cacheDao.label,
-                    result: cacheDao.result,
-                    latestResult: cacheDao.result,
+                this.requeriedNodes.push({
+                    nodeIdentifier: cachedNode.nodeIdentifier,
+                    roomName: cachedNode.roomName,
+                    nodeName: cachedNode.nodeName,
+                    id: cachedNode.id,
+                    paramObject: cachedNode.paramObject,
+                    label: cachedNode.label,
+                    result: cachedNode.result,
+                    latestResult: cachedNode.result,
                 });
             }
         }
 
-        return this.requeriedDaos;
+        return this.requeriedNodes;
     }
 }

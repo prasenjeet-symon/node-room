@@ -1,10 +1,10 @@
 import { Application, Request, Response } from "express";
-import { DatabaseClient, DatabaseManager } from "./database";
 import {
   HttpCacheManager,
   HttpClient,
   HttpNetworkManager,
 } from "./network/http-manager";
+import { RoomClient, RoomManager } from "./room";
 
 export class BootstrapNode {
   private static _instance: BootstrapNode;
@@ -12,7 +12,7 @@ export class BootstrapNode {
 
   public static init(
     app: Application,
-    config: { databases: any[] }
+    config: { rooms: any[] }
   ): BootstrapNode {
     if (!BootstrapNode._instance) {
       BootstrapNode._instance = new BootstrapNode(app, config);
@@ -24,27 +24,23 @@ export class BootstrapNode {
     return this.app;
   }
 
-  private constructor(app: Application, config: { databases: any[] }) {
+  private constructor(app: Application, config: { rooms: any[] }) {
     this.app = app;
     HttpCacheManager.getInstance();
-    DatabaseManager.getInstance();
+    RoomManager.getInstance();
     HttpNetworkManager.getInstance();
 
-    for (const database of config.databases) {
-      const databaseClient = new DatabaseClient(new database());
-      DatabaseManager.getInstance().addDatabase(
-        databaseClient.getDatabaseName(),
-        databaseClient
-      );
+    for (const room of config.rooms) {
+      const roomClient = new RoomClient(new room());
+      RoomManager.getInstance().addRoom(roomClient.getRoomName(), roomClient);
     }
 
-    // start listing http requests
+    // attach the post request handler
     this.app.post("/node-room", (req: Request, res: Response) => {
-      // new request
       const httpClient = new HttpClient(req, res);
       HttpNetworkManager.getInstance().addHttpClient(httpClient);
     });
 
-    console.log("node-room is ready");
+    console.info("node-room is ready");
   }
 }

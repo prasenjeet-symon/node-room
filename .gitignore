@@ -1,2 +1,4 @@
 node_modules
 prettier.config.js
+dist
+.env
