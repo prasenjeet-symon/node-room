@@ -1,14 +1,14 @@
-import { DaoConfig } from '../main-interface';
+import { NodeConfig } from '../main-interface';
 
 // create the class decorator
-export function Dao(config: DaoConfig) {
+export function Node(config: NodeConfig) {
     return function <T extends { new (...args: any[]): {} }>(constructor: T): T {
         return class extends constructor {
             constructor(...args: any[]) {
                 super(args);
             }
 
-            public daoConfig: DaoConfig = config;
+            public nodeConfig: NodeConfig = config;
             public param_object: any = null;
         };
     };

@@ -7,21 +7,20 @@ export class HttpSelectManager {
     private selectCache: Map<string, SelectCache> = new Map();
 
     constructor() {}
-
     /**
      *
-     * @param daoName : Name of the dao to add
+     * @param nodeName : Name of the dao to add
      * @param labels : Param label to add
      * @param result : dao query result
      */
-    public addDao(databaseName: string, daoName: string, id: string, paramObject: any, labels: Label[], result: any) {
-        const daoIdentifier = this.generateDaoIdentifier(databaseName, daoName, paramObject);
-        // add the dao to the select cache
-        // since the dao identifier is unique, we can use it as the key and map will replace the old value
-        this.selectCache.set(daoIdentifier, {
-            daoIdentifier,
-            databaseName,
-            daoName,
+    public addNode(roomName: string, nodeName: string, id: string, paramObject: any, labels: Label[], result: any) {
+        const nodeIdentifier = this.generateNodeIdentifier(roomName, nodeName, paramObject);
+        // add the node to the select cache
+        // since the node identifier is unique, we can use it as the key and map will replace the old value
+        this.selectCache.set(nodeIdentifier, {
+            nodeIdentifier,
+            roomName,
+            nodeName,
             id,
             paramObject,
             label: labels,
@@ -36,76 +35,75 @@ export class HttpSelectManager {
                 this.strictLabels.set(label, new Set());
             }
 
-            this.strictLabels.get(label)?.add(daoIdentifier);
+            this.strictLabels.get(label)?.add(nodeIdentifier);
         }
 
-        return daoIdentifier;
+        return nodeIdentifier;
     }
     /**
-     * Get the dao from the cache
+     * Get the node from the cache
      *
      */
-    public getDao(strictLabels: string[], paramObject: any): SelectCache[] {
-        // get the daos that match the strict labels
-        const allStrictLabelDaos: { label: string; daoIdentifier: string }[] = [];
+    public getNode(strictLabels: string[], paramObject: any): SelectCache[] {
+        // get the node that match the strict labels
+        const allStrictLabels: { label: string; nodeIdentifier: string }[] = [];
 
         for (const label of strictLabels) {
             if (this.strictLabels.has(label)) {
-                const daos = this.strictLabels.get(label);
-                if (daos) {
+                const nodes = this.strictLabels.get(label);
+                if (nodes) {
                     // set to an array
-                    const daoArray = Array.from(daos); // list of all daoidentifiers
-                    allStrictLabelDaos.push(...daoArray.map((daoIdentifier) => ({ label, daoIdentifier })));
+                    const daoArray = Array.from(nodes); // list of all nodeIdentifiers
+                    allStrictLabels.push(...daoArray.map((nodeIdentifier) => ({ label, nodeIdentifier })));
                 }
             }
         }
 
         // convert to a set, we need only unique values
-        const allStrictLabelDaosSet = removeDuplicateValuesFromArray(allStrictLabelDaos, 'daoIdentifier', 'label');
-        const finalStrictLabelDaos: string[] = [];
+        const allStrictLabelsUnique = removeDuplicateValuesFromArray(allStrictLabels, 'nodeIdentifier', 'label');
+        const finalStrictLabelsNodes: string[] = [];
 
-        for (const daoIdentifier of allStrictLabelDaosSet) {
-            const dao = this.selectCache.get(daoIdentifier.daoIdentifier);
-            if (dao) {
+        for (const nodeIdentifier of allStrictLabelsUnique) {
+            const node = this.selectCache.get(nodeIdentifier.nodeIdentifier);
+            if (node) {
                 // we need to check the param label
-                const isMatch = dao.label.filter((p) => p.label === daoIdentifier.label).find((label) => label.when(dao.paramObject, paramObject));
-
+                const isMatch = node.label.filter((p) => p.label === nodeIdentifier.label).find((label) => label.when(node.paramObject, paramObject));
                 if (isMatch) {
-                    finalStrictLabelDaos.push(daoIdentifier.daoIdentifier);
+                    finalStrictLabelsNodes.push(nodeIdentifier.nodeIdentifier);
                 }
             }
         }
 
         // array of all final dao identifiers
-        const allDaos = Array.from(new Set(finalStrictLabelDaos));
+        const allNodes = Array.from(new Set(finalStrictLabelsNodes));
 
         // get the dao from the cache
-        const allDaosFinal: SelectCache[] = [];
-        for (const daoIdentifier of allDaos) {
-            const dao = this.selectCache.get(daoIdentifier);
-            if (dao) {
-                allDaosFinal.push(dao);
+        const allNodesFinal: SelectCache[] = [];
+        for (const nodeIdentifier of allNodes) {
+            const node = this.selectCache.get(nodeIdentifier);
+            if (node) {
+                allNodesFinal.push(node);
             }
         }
 
         // return the dao
-        return allDaosFinal;
+        return allNodesFinal;
     }
 
-    // update the daos with latest result
-    public updateDao(daoIdentifier: string, result: any) {
-        const dao = this.selectCache.get(daoIdentifier);
-        if (dao) {
-            dao.result = JSON.stringify(result);
+    // update the nodes with latest result
+    public updateNode(nodeIdentifier: string, result: any) {
+        const node = this.selectCache.get(nodeIdentifier);
+        if (node) {
+            node.result = JSON.stringify(result);
         }
     }
     /**
      * Generate the dao identifier
      */
-    public generateDaoIdentifier(databaseName: string, daoName: string, paramObject: any): string {
+    public generateNodeIdentifier(roomName: string, nodeName: string, paramObject: any): string {
         const hash = createHash('sha256');
-        hash.update(databaseName);
-        hash.update(daoName);
+        hash.update(roomName);
+        hash.update(nodeName);
         hash.update(JSON.stringify(paramObject));
         return hash.digest('hex');
     }

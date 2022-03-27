@@ -1,68 +1,71 @@
 import { Request, Response } from 'express';
-import { DaoRequeryRunner, DaoRunner } from '../dao-runner/dao-runner';
-import { DaoClientRunData, DaoConfig } from '../main-interface';
+import { NodeRequeryRunner, NodeRunner } from '../dao-runner/dao-runner';
+import { NodeClientRunData, NodeConfig } from '../main-interface';
 import { HttpSelectManager } from '../select-managers/http-select-manager';
 import { findDelta, generateHash, isDeltaEmpty } from '../utils';
 
 export class HttpCacheManager {
     private httpCache: Map<string, Map<string, HttpSelectManager>> = new Map();
-    static instance: HttpCacheManager;
+    private static _instance: HttpCacheManager;
 
     static getInstance(): HttpCacheManager {
-        if (!HttpCacheManager.instance) {
-            HttpCacheManager.instance = new HttpCacheManager();
+        if (!HttpCacheManager._instance) {
+            HttpCacheManager._instance = new HttpCacheManager();
         }
-        return HttpCacheManager.instance;
+        return HttpCacheManager._instance;
     }
 
     constructor() {}
 
     // add http cache
-    public addHttpCache(http_instance: string, database_name: string, dao_name: string, daoConfig: DaoConfig, param_object: any, result: any) {
+    public addHttpCache(http_instance: string, roomName: string, nodeName: string, nodeConfig: NodeConfig, param_object: any, result: any) {
         if (!this.httpCache.has(http_instance)) {
             this.httpCache.set(http_instance, new Map());
         }
 
-        if (!this.httpCache.get(http_instance)?.has(database_name)) {
-            this.httpCache.get(http_instance)?.set(database_name, new HttpSelectManager());
+        if (!this.httpCache.get(http_instance)?.has(roomName)) {
+            this.httpCache.get(http_instance)?.set(roomName, new HttpSelectManager());
         }
 
-        return this.httpCache.get(http_instance)?.get(database_name)?.addDao(database_name, dao_name, daoConfig.id, param_object, daoConfig.labels, result);
+        return this.httpCache.get(http_instance)?.get(roomName)?.addNode(roomName, nodeName, nodeConfig.id, param_object, nodeConfig.labels, result);
     }
 
-    // get affected dao
-    public getAffectedDao(http_instance: string, database_name: string, daoConfig: DaoConfig, param_object: any) {
+    public getAffectedNodes(http_instance: string, roomName: string, nodeConfig: NodeConfig, param_object: any) {
         if (!this.httpCache.has(http_instance)) {
             return undefined;
         }
 
-        if (!this.httpCache.get(http_instance)?.has(database_name)) {
+        if (!this.httpCache.get(http_instance)?.has(roomName)) {
             return undefined;
         }
 
         return this.httpCache
             .get(http_instance)
-            ?.get(database_name)
-            ?.getDao(
-                daoConfig.labels.map((p) => p.label),
+            ?.get(roomName)
+            ?.getNode(
+                nodeConfig.labels.map((p) => p.label),
                 param_object
             );
     }
 
     // update affected dao with latest result
-    public updateAffectedDao(http_instance: string, database_name: string, daoIdentifier: string, latestResult: any) {
+    public updateAffectedNode(http_instance: string, roomName: string, nodeIdentifier: string, latestResult: any) {
         if (!this.httpCache.has(http_instance)) {
             return undefined;
         }
 
-        if (!this.httpCache.get(http_instance)?.has(database_name)) {
+        if (!this.httpCache.get(http_instance)?.has(roomName)) {
             return undefined;
         }
 
-        return this.httpCache.get(http_instance)?.get(database_name)?.updateDao(daoIdentifier, latestResult);
+        return this.httpCache.get(http_instance)?.get(roomName)?.updateNode(nodeIdentifier, latestResult);
     }
 }
-
+/**
+ *
+ *
+ *
+ */
 export class HttpNetworkManager {
     private httpClients: Map<string, HttpClient> = new Map();
     private static _instance: HttpNetworkManager;
@@ -84,11 +87,15 @@ export class HttpNetworkManager {
         this.httpClients.set(httpClient.httpClientUUID(), httpClient);
     }
 }
-
+/**
+ *
+ *
+ *
+ */
 export class HttpClient {
-    private clientInstanceUUID!: string;
+    private clientInstanceUUID!: string; // received from the client
     private canCache: boolean = false;
-    private daoRunData: DaoClientRunData;
+    private nodeRunData: NodeClientRunData;
     private httpClientHash!: string;
 
     constructor(private request: Request, private response: Response) {
@@ -97,56 +104,78 @@ export class HttpClient {
             this.canCache = this.request.headers['can-cache'] === '1' ? true : false;
         }
 
-        // extract the dao run data from body json
-        this.daoRunData = this.request.body;
-        this.httpClientHash = generateHash(this.clientInstanceUUID, this.daoRunData.databaseName, this.daoRunData.daoName, this.daoRunData.paramObject);
+        this.nodeRunData = this.request.body;
+        this.httpClientHash = generateHash(this.clientInstanceUUID, this.nodeRunData.roomName, this.nodeRunData.nodeName, this.nodeRunData.paramObject);
         try {
-            this.runDao();
+            this.runNode();
         } catch (error) {
             this.sendError(error);
         }
     }
 
-    // run the dao
-    public async runDao() {
-        const daoRunner = new DaoRunner(this.daoRunData.databaseName, this.daoRunData.daoName, this.daoRunData.paramObject);
-        const result = await daoRunner.run();
-        const config = daoRunner.getDaoConfig();
+    // run the node now
+    public async runNode() {
+        const nodeRunner = new NodeRunner(this.nodeRunData.roomName, this.nodeRunData.nodeName, this.nodeRunData.paramObject);
+
+        const result = await nodeRunner.run();
+        const config = nodeRunner.getNodeConfig();
 
         // if we can cache and dao mode is R ( read ) then cache the result
         if (this.canCache && config.mode === 'R') {
-            // add the dao to the cache , because dao is cache able and mode is R
+            // add the dao to the cache , because dao is cacheable and mode is R
             const httpCacheManager = HttpCacheManager.getInstance();
-            const daoIdentifier = httpCacheManager.addHttpCache(this.clientInstanceUUID, this.daoRunData.databaseName, this.daoRunData.daoName, config, this.daoRunData.paramObject, result);
-            this.sendData({ daoIdentifier, result: result });
+            const nodeIdentifier = httpCacheManager.addHttpCache(
+                this.clientInstanceUUID,
+                this.nodeRunData.roomName,
+                this.nodeRunData.nodeName,
+                config,
+                this.nodeRunData.paramObject,
+                result
+            );
+
+            this.sendData({ nodeIdentifier, result: result });
         } else if (!this.canCache && config.mode === 'R') {
             // incoming request is not cache able and dao mode is R ( read )
-            // returning the result with undefined daoIdentifier to indicate that the result is not cache able
-            this.sendData({ daoIdentifier: undefined, result: result });
+            // returning the result with undefined nodeIdentifier to indicate that the result is not cache able
+            this.sendData({ nodeIdentifier: undefined, result: result });
         } else {
             // incoming dao was modification dao
             // get the affected dao due to changes
             const httpCacheManager = HttpCacheManager.getInstance();
-            const affectedDao = httpCacheManager.getAffectedDao(this.clientInstanceUUID, this.daoRunData.databaseName, config, this.daoRunData.paramObject);
+            const affectedNodes = httpCacheManager.getAffectedNodes(this.clientInstanceUUID, this.nodeRunData.roomName, config, this.nodeRunData.paramObject);
+
             // re-run all the affected dao
-            if (affectedDao) {
-                const daoRequeryRunner = new DaoRequeryRunner(affectedDao);
-                const requeryResult = await daoRequeryRunner.reQuery();
+            if (affectedNodes) {
+                const nodeRequeryRunner = new NodeRequeryRunner(affectedNodes);
+                const requeryResult = await nodeRequeryRunner.reQuery();
+
                 const withDelta = requeryResult
                     .map((p) => {
-                        return { daoIdentifier: p.daoIdentifier, id: p.id, delta: findDelta(JSON.parse(p.result), p.latestResult, p.id) };
+                        return {
+                            nodeIdentifier: p.nodeIdentifier,
+                            id: p.id,
+                            delta: findDelta(JSON.parse(p.result), p.latestResult, p.id),
+                        };
                     })
                     .filter((p) => !isDeltaEmpty(p.delta));
 
                 requeryResult.forEach((p) => {
-                    httpCacheManager.updateAffectedDao(this.clientInstanceUUID, this.daoRunData.databaseName, p.daoIdentifier, p.latestResult);
+                    httpCacheManager.updateAffectedNode(this.clientInstanceUUID, this.nodeRunData.roomName, p.nodeIdentifier, p.latestResult);
                 });
 
                 // we are sending the delta to the client
-                // here daoIdentifier is undefined because the incoming dao is modification dao which is not cache able
-                this.sendData({ daoIdentifier: undefined, result: result, delta: withDelta.length > 0 ? withDelta : undefined });
+                // here nodeIdentifier is undefined because the incoming dao is modification dao which is not cache able
+                this.sendData({
+                    nodeIdentifier: undefined,
+                    result: result,
+                    delta: withDelta.length > 0 ? withDelta : undefined,
+                });
             } else {
-                this.sendData({ daoIdentifier: undefined, result: result, delta: undefined });
+                this.sendData({
+                    nodeIdentifier: undefined,
+                    result: result,
+                    delta: undefined,
+                });
             }
         }
     }
@@ -171,6 +200,6 @@ export class HttpClient {
 
     // log the http request
     public logRequest() {
-        console.log(`[${this.clientInstanceUUID}] ${this.daoRunData.databaseName} ${this.daoRunData.daoName} ${this.daoRunData.paramObject}`);
+        console.log(`[${this.clientInstanceUUID}] ${this.nodeRunData.roomName} ${this.nodeRunData.nodeName} ${this.nodeRunData.paramObject}`);
     }
 }

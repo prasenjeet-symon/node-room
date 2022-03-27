@@ -1,7 +1,7 @@
 export interface SelectCache {
-    daoIdentifier: string;
-    databaseName: string;
-    daoName: string;
+    nodeIdentifier: string;
+    roomName: string;
+    nodeName: string;
     id: string;
     paramObject: any;
     label: Label[];
@@ -9,9 +9,9 @@ export interface SelectCache {
 }
 
 export interface SelectCacheRequery {
-    daoIdentifier: string;
-    databaseName: string;
-    daoName: string;
+    nodeIdentifier: string;
+    roomName: string;
+    nodeName: string;
     id: string;
     paramObject: any;
     label: Label[];
@@ -19,24 +19,24 @@ export interface SelectCacheRequery {
     latestResult: any;
 }
 
-export type DaoMode = 'T' | 'C' | 'R' | 'U' | 'D';
+export type NodeType = 'T' | 'C' | 'R' | 'U' | 'D';
 
 // dao query config
-export interface DaoConfig {
-    mode: DaoMode;
+export interface NodeConfig {
+    mode: NodeType;
     id: string;
     labels: Label[];
 }
 
 // dao client run data
-export interface DaoClientRunData {
-    databaseName: string;
-    daoName: string;
+export interface NodeClientRunData {
+    roomName: string;
+    nodeName: string;
     paramObject: any;
 }
 
 // dao client run data result
-export interface DaoClientRunDataResult {
+export interface NodeClientRunDataResult {
     result: any;
 }
 
@@ -45,6 +45,7 @@ export type WhenTypeFunction = (paramName: string) => (paramObject: any) => stri
 export type WhenParamType = string | WhenTypeFunction;
 
 export type When = (selfParamObject: any, mNodeParamObject: any) => boolean;
+
 export interface Label {
     label: string;
     when: When;
