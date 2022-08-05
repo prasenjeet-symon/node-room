@@ -20,7 +20,7 @@ export class UpdateTodo {
     @Query()
     fetch(id: number, completed: boolean) {
         const database = new TodoDatabase();
-        database.updateTodo(id,  completed);
+        database.updateTodo(id, completed);
     }
 }
 
@@ -43,5 +43,16 @@ export class AddTodo {
     fetch(title: string) {
         const database = new TodoDatabase();
         database.addTodo(title, true);
+    }
+}
+
+// get limited todo
+@Node({ id: 'id', mode: 'R', labels: [{ label: 'TODO', when: nTrue() }] })
+export class GetLimitedTodos {
+    // Please note that this function name should be exactly the same as the fetch (maybe async )
+    @Query()
+    fetch(startAfter: string[], limit: number) {
+        const database = new TodoDatabase();
+        return database.getLimitedTodos(startAfter, limit);
     }
 }

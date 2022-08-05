@@ -37,8 +37,8 @@ export class TodoDatabase {
         }
     }
 
-    // update todo
-    public updateTodo(id: number, completed: boolean): void {
+    // update tod
+    public updateTodo(id: number, completed: boolean): void { 
         const index = TODOS.findIndex((todo) => todo.id === id);
         if (index !== -1) {
             TODOS[index].completed = completed;
@@ -48,5 +48,10 @@ export class TodoDatabase {
     // get all todos
     public getTodos() {
         return TODOS;
+    }
+
+    // get limited todo
+    public getLimitedTodos(startAfter: string[], limit: number) {
+        
     }
 }
