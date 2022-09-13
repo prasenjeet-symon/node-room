@@ -3,9 +3,7 @@ export class RoomManager {
     private rooms: Map<string, RoomClient> = new Map();
 
     public static getInstance(): RoomManager {
-        if (!RoomManager._instance) {
-            RoomManager._instance = new RoomManager();
-        }
+        if (!RoomManager._instance) RoomManager._instance = new RoomManager();
         return RoomManager._instance;
     }
 
@@ -18,9 +16,8 @@ export class RoomManager {
     public addRoom(roomName: string, RoomClient: RoomClient) {
         this.rooms.set(roomName, RoomClient);
     }
-
     /**
-     * Get node room by name from the manager
+     * Get the node of the given room by name
      * @param roomName : Name of the room
      * @param nodeName : Name of the node
      * @returns
@@ -41,9 +38,9 @@ export class RoomClient {
         return this.roomInstance.getRoomName();
     }
     /**
-     * Get the node from the room
+     * Get the node of the given room by name
      * @param nodeName : Name of the node
-     * @returns
+     * @returns : Node class
      */
     public getNode(nodeName: string): any {
         return this.roomInstance.getNode(nodeName);

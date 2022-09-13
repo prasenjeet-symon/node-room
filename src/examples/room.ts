@@ -1,7 +1,7 @@
 import { Room } from '../decorators/room';
 import { AddTodo, DeleteTodo, GetAllTodo, GetLimitedTodos, UpdateTodo } from './nodes';
 
-@Room()
+@Room('TodoRoom')
 export class TodoRoom {
     public GetAllTodo = GetAllTodo;
     public UpdateTodo = UpdateTodo;

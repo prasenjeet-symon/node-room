@@ -2,7 +2,7 @@
  * This is class decorator
  * This help us create a database class for the node room
  */
-export function Room() {
+export function Room(name: string) {
     return function <T extends { new (...args: any[]): {} }>(constructor: T): T {
         return class extends constructor {
             constructor(...args: any[]) {
@@ -10,7 +10,7 @@ export function Room() {
             }
 
             public getRoomName(): string {
-                return this.constructor.name;
+                return name || (this as any).constructor.name;
             }
 
             public getNode(nodeName: string) {

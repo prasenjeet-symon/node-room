@@ -6,12 +6,13 @@ export class NodeRunner {
     private nodeInstance: any;
 
     constructor(private roomName: string, private nodeName: string, private paramObject: any) {
-        this.node = RoomManager.getInstance().getNode(roomName, nodeName); // node as class
+        // get the node from room
+        this.node = RoomManager.getInstance().getNode(roomName, nodeName);
     }
 
     public async run() {
         try {
-            const nodeToRun = new this.node(); // create the instance of the node
+            const nodeToRun = new this.node();
             nodeToRun.param_object = this.paramObject;
             const result = await nodeToRun.fetch();
             this.nodeInstance = nodeToRun;

@@ -1,13 +1,7 @@
 // this is in memory database
 
 // holds all the todo
-const TODOS = [
-    { id: 1, title: 'Learn NodeJS', completed: false },
-    { id: 2, title: 'Learn TypeScript', completed: false },
-    { id: 3, title: 'Learn Angular', completed: false },
-    { id: 4, title: 'Learn React', completed: false },
-    { id: 5, title: 'Learn Vue', completed: false },
-];
+const TODOS: any[] = [];
 
 export class TodoDatabase {
     constructor() {}
@@ -26,6 +20,7 @@ export class TodoDatabase {
             id: this.generateId(),
             title: title,
             completed: completed,
+            date: new Date(),
         });
     }
 
@@ -38,7 +33,7 @@ export class TodoDatabase {
     }
 
     // update tod
-    public updateTodo(id: number, completed: boolean): void { 
+    public updateTodo(id: number, completed: boolean): void {
         const index = TODOS.findIndex((todo) => todo.id === id);
         if (index !== -1) {
             TODOS[index].completed = completed;
@@ -51,7 +46,11 @@ export class TodoDatabase {
     }
 
     // get limited todo
-    public getLimitedTodos(startAfter: string[], limit: number) {
+    public getLimitedTodos(offset: number, limit: number) {
         
+        // sort by date and then get the limited todo
+        const jk =  TODOS.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(offset, offset + limit);
+        
+        return jk;
     }
 }

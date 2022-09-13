@@ -51,8 +51,8 @@ export class AddTodo {
 export class GetLimitedTodos {
     // Please note that this function name should be exactly the same as the fetch (maybe async )
     @Query()
-    fetch(startAfter: string[], limit: number) {
+    fetch(offset: number, limit: number) {
         const database = new TodoDatabase();
-        return database.getLimitedTodos(startAfter, limit);
+        return database.getLimitedTodos(offset, limit);
     }
 }

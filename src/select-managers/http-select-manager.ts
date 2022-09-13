@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { Label, SelectCache } from '../main-interface';
+import { INodeStorage, Label, NodeStorageClass, SelectCache } from '../main-interface';
 import { removeDuplicateValuesFromArray } from '../utils';
 
 export class HttpSelectManager {
@@ -9,9 +9,9 @@ export class HttpSelectManager {
     constructor() {}
     /**
      *
-     * @param nodeName : Name of the dao to add
-     * @param labels : Param label to add
-     * @param result : dao query result
+     * @param nodeName : Name of the node
+     * @param labels : Node labels
+     * @param result : node result
      */
     public addNode(roomName: string, nodeName: string, id: string, paramObject: any, labels: Label[], result: any) {
         const nodeIdentifier = this.generateNodeIdentifier(roomName, nodeName, paramObject);
@@ -24,8 +24,10 @@ export class HttpSelectManager {
             id,
             paramObject,
             label: labels,
-            result: JSON.stringify(result),
+            result: null,
         });
+
+        StorageManager.getInstance().storage.add(nodeIdentifier, JSON.stringify(result));
 
         const strictLabels = labels.map((label) => label.label);
 
@@ -40,21 +42,24 @@ export class HttpSelectManager {
 
         return nodeIdentifier;
     }
+
     /**
-     * Get the node from the cache
      *
+     * @param strictLabels : modification node labels
+     * @param paramObject : modification node param object
+     * @returns : affected nodes
      */
-    public getNode(strictLabels: string[], paramObject: any): SelectCache[] {
+    public async getNode(strictLabels: string[], paramObject: any): Promise<SelectCache[]> {
         // get the node that match the strict labels
         const allStrictLabels: { label: string; nodeIdentifier: string }[] = [];
 
         for (const label of strictLabels) {
             if (this.strictLabels.has(label)) {
-                const nodes = this.strictLabels.get(label);
-                if (nodes) {
+                const nodeIdentifiers = this.strictLabels.get(label);
+                if (nodeIdentifiers) {
                     // set to an array
-                    const daoArray = Array.from(nodes); // list of all nodeIdentifiers
-                    allStrictLabels.push(...daoArray.map((nodeIdentifier) => ({ label, nodeIdentifier })));
+                    const nodeIdentifiersArray = Array.from(nodeIdentifiers);
+                    allStrictLabels.push(...nodeIdentifiersArray.map((nodeIdentifier) => ({ label, nodeIdentifier })));
                 }
             }
         }
@@ -74,28 +79,26 @@ export class HttpSelectManager {
             }
         }
 
-        // array of all final dao identifiers
-        const allNodes = Array.from(new Set(finalStrictLabelsNodes));
+        const allAffectedNodes = Array.from(new Set(finalStrictLabelsNodes));
 
-        // get the dao from the cache
-        const allNodesFinal: SelectCache[] = [];
-        for (const nodeIdentifier of allNodes) {
+        const affectedNodesWithDataPromises = allAffectedNodes.map(async (nodeIdentifier) => {
             const node = this.selectCache.get(nodeIdentifier);
             if (node) {
-                allNodesFinal.push(node);
+                const storageData = await StorageManager.getInstance().storage.get(nodeIdentifier);
+                return { ...node, result: storageData ? JSON.parse(storageData) : storageData };
+            } else {
+                return null;
             }
-        }
+        });
 
-        // return the dao
-        return allNodesFinal;
+        const allAffectedNodesFinal: SelectCache[] = (await Promise.all(affectedNodesWithDataPromises)).filter((p) => p !== null) as SelectCache[];
+
+        return allAffectedNodesFinal;
     }
 
     // update the nodes with latest result
-    public updateNode(nodeIdentifier: string, result: any) {
-        const node = this.selectCache.get(nodeIdentifier);
-        if (node) {
-            node.result = JSON.stringify(result);
-        }
+    public async updateNode(nodeIdentifier: string, result: any) {
+        await StorageManager.getInstance().storage.add(nodeIdentifier, JSON.stringify(result));
     }
     /**
      * Generate the dao identifier
@@ -106,5 +109,23 @@ export class HttpSelectManager {
         hash.update(nodeName);
         hash.update(JSON.stringify(paramObject));
         return hash.digest('hex');
+    }
+}
+
+// storage manager abstract class
+export class StorageManager {
+    private static _instance: StorageManager;
+    public storage: INodeStorage;
+
+    static initInstance(storage: NodeStorageClass) {
+        if (!StorageManager._instance) StorageManager._instance = new StorageManager(storage);
+    }
+
+    private constructor(storage: NodeStorageClass) {
+        this.storage = new storage();
+    }
+
+    static getInstance(): StorageManager {
+        return StorageManager._instance;
     }
 }

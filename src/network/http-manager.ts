@@ -9,16 +9,14 @@ export class HttpCacheManager {
     private static _instance: HttpCacheManager;
 
     static getInstance(): HttpCacheManager {
-        if (!HttpCacheManager._instance) {
-            HttpCacheManager._instance = new HttpCacheManager();
-        }
+        if (!HttpCacheManager._instance) HttpCacheManager._instance = new HttpCacheManager();
         return HttpCacheManager._instance;
     }
 
     constructor() {}
 
     // add http cache
-    public addHttpCache(http_instance: string, roomName: string, nodeName: string, nodeConfig: NodeConfig, param_object: any, result: any) {
+    public async addHttpCache(http_instance: string, roomName: string, nodeName: string, nodeConfig: NodeConfig, param_object: any, result: any) {
         if (!this.httpCache.has(http_instance)) {
             this.httpCache.set(http_instance, new Map());
         }
@@ -30,7 +28,7 @@ export class HttpCacheManager {
         return this.httpCache.get(http_instance)?.get(roomName)?.addNode(roomName, nodeName, nodeConfig.id, param_object, nodeConfig.labels, result);
     }
 
-    public getAffectedNodes(http_instance: string, roomName: string, nodeConfig: NodeConfig, param_object: any) {
+    public async getAffectedNodes(http_instance: string, roomName: string, nodeConfig: NodeConfig, param_object: any) {
         if (!this.httpCache.has(http_instance)) {
             return undefined;
         }
@@ -49,7 +47,7 @@ export class HttpCacheManager {
     }
 
     // update affected dao with latest result
-    public updateAffectedNode(http_instance: string, roomName: string, nodeIdentifier: string, latestResult: any) {
+    public async updateAffectedNode(http_instance: string, roomName: string, nodeIdentifier: string, latestResult: any) {
         if (!this.httpCache.has(http_instance)) {
             return undefined;
         }
@@ -122,16 +120,9 @@ export class HttpClient {
 
         // if we can cache and dao mode is R ( read ) then cache the result
         if (this.canCache && config.mode === 'R') {
-            // add the dao to the cache , because dao is cacheable and mode is R
+            // add the dao to the cache
             const httpCacheManager = HttpCacheManager.getInstance();
-            const nodeIdentifier = httpCacheManager.addHttpCache(
-                this.clientInstanceUUID,
-                this.nodeRunData.roomName,
-                this.nodeRunData.nodeName,
-                config,
-                this.nodeRunData.paramObject,
-                result
-            );
+            const nodeIdentifier = await httpCacheManager.addHttpCache(this.clientInstanceUUID, this.nodeRunData.roomName, this.nodeRunData.nodeName, config, this.nodeRunData.paramObject, result);
 
             this.sendData({ nodeIdentifier, result: result });
         } else if (!this.canCache && config.mode === 'R') {
@@ -142,7 +133,7 @@ export class HttpClient {
             // incoming dao was modification dao
             // get the affected dao due to changes
             const httpCacheManager = HttpCacheManager.getInstance();
-            const affectedNodes = httpCacheManager.getAffectedNodes(this.clientInstanceUUID, this.nodeRunData.roomName, config, this.nodeRunData.paramObject);
+            const affectedNodes = await httpCacheManager.getAffectedNodes(this.clientInstanceUUID, this.nodeRunData.roomName, config, this.nodeRunData.paramObject);
 
             // re-run all the affected dao
             if (affectedNodes) {
@@ -154,7 +145,7 @@ export class HttpClient {
                         return {
                             nodeIdentifier: p.nodeIdentifier,
                             id: p.id,
-                            delta: findDelta(JSON.parse(p.result), p.latestResult, p.id),
+                            delta: findDelta(p.result, p.latestResult, p.id),
                         };
                     })
                     .filter((p) => !isDeltaEmpty(p.delta));

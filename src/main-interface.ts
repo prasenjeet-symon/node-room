@@ -50,3 +50,19 @@ export interface Label {
     label: string;
     when: When;
 }
+
+// bootstrap config
+export interface BootstrapConfig {
+    rooms: any[];
+    storage: NodeStorageClass;
+}
+
+// for the node result storage
+export interface INodeStorage {
+    add: (key: string, value: string) => void;
+    get: (key: string) => string | undefined;
+    remove: (key: string) => void;
+}
+
+// class type that implements INodeStorage
+export type NodeStorageClass = new () => INodeStorage;
