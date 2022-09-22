@@ -44,7 +44,7 @@ export interface NodeClientRunDataResult {
 export type WhenTypeFunction = (paramName: string) => (paramObject: any) => string | number;
 export type WhenParamType = string | WhenTypeFunction;
 
-export type When = (selfParamObject: any, mNodeParamObject: any) => boolean;
+export type When = (selfParamObject: any, mNodeParamObject: any, mNodeType: NodeType) => boolean;
 
 export interface Label {
     label: string;
@@ -55,14 +55,23 @@ export interface Label {
 export interface BootstrapConfig {
     rooms: any[];
     storage: NodeStorageClass;
+    clientKillTimeout: number;
 }
 
 // for the node result storage
 export interface INodeStorage {
-    add: (key: string, value: string) => void;
-    get: (key: string) => string | undefined;
-    remove: (key: string) => void;
+    add: (key: string, value: string, date?: Date) => Promise<void>;
+    get: (key: string) => Promise<string | undefined>;
+    remove: (key: string) => Promise<void>;
 }
 
 // class type that implements INodeStorage
 export type NodeStorageClass = new () => INodeStorage;
+
+// rabbit mq message
+export interface RabbitMQMessage {
+    clientInstanceUUID: string;
+    roomName: string;
+    nodeName: string;
+    paramObject: any;
+}

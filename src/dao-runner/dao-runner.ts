@@ -12,11 +12,9 @@ export class NodeRunner {
 
     public async run() {
         try {
-            const nodeToRun = new this.node();
-            nodeToRun.param_object = this.paramObject;
-            const result = await nodeToRun.fetch();
-            this.nodeInstance = nodeToRun;
-            return result;
+            this.nodeInstance = new this.node();
+            this.nodeInstance.param_object = this.paramObject;
+            return await this.nodeInstance.fetch();
         } catch (error) {
             throw error;
         }
@@ -28,18 +26,17 @@ export class NodeRunner {
 }
 
 export class NodeRequeryRunner {
-    private requeriedNodes: SelectCacheRequery[] = []; // result after requerying
+    private requiredNodes: SelectCacheRequery[] = []; // result after requerying
 
     constructor(private cachedNodes: SelectCache[]) {}
 
     public async reQuery() {
-        for (const cachedNode of this.cachedNodes) {
+        const promises = this.cachedNodes.map(async (cachedNode) => {
             const daoToRun = new NodeRunner(cachedNode.roomName, cachedNode.nodeName, cachedNode.paramObject);
 
             try {
                 const result = await daoToRun.run();
-
-                this.requeriedNodes.push({
+                return {
                     nodeIdentifier: cachedNode.nodeIdentifier,
                     roomName: cachedNode.roomName,
                     nodeName: cachedNode.nodeName,
@@ -48,10 +45,9 @@ export class NodeRequeryRunner {
                     label: cachedNode.label,
                     result: cachedNode.result,
                     latestResult: result,
-                });
+                };
             } catch (error) {
-                // do not throw error
-                this.requeriedNodes.push({
+                return {
                     nodeIdentifier: cachedNode.nodeIdentifier,
                     roomName: cachedNode.roomName,
                     nodeName: cachedNode.nodeName,
@@ -60,10 +56,11 @@ export class NodeRequeryRunner {
                     label: cachedNode.label,
                     result: cachedNode.result,
                     latestResult: cachedNode.result,
-                });
+                };
             }
-        }
+        });
 
-        return this.requeriedNodes;
+        this.requiredNodes = await Promise.all(promises);
+        return this.requiredNodes;
     }
 }

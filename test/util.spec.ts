@@ -164,7 +164,6 @@ describe('test delta function', () => {
         ];
 
         const delta = findDelta(prevValue, newValue, 'id');
-        console.log(delta);
 
         expect(delta).toEqual([
             { id: 3, name: 'Peter', age: 40, nr: true, pRef: 2 },
@@ -192,7 +191,10 @@ describe('test delta function', () => {
         const newValue: any = [];
 
         const delta = findDelta(prevValue, newValue, 'id');
-        expect(delta).toEqual([{ id: 1, dr: true }, { id: 2, dr: true }]);
+        expect(delta).toEqual([
+            { id: 1, dr: true },
+            { id: 2, dr: true },
+        ]);
     });
 
     test('element get deleted and element get updated', async () => {
@@ -257,7 +259,7 @@ describe('test new object maker from delta and old value', () => {
         const newValue = { id: 1, name: 'Harry', progress: [1, 2, 3, 4, 5], age: 21, address: { city: 'Patna', country: 'India' } };
 
         const delta = findDelta(prevValue, newValue, 'id');
-        console.log(delta, 'delta');
+
         const finalValue = findNewValueFromDelta(prevValue, delta, 'id');
         expect(finalValue).toEqual(newValue);
     });
@@ -322,7 +324,7 @@ describe('test new object maker from delta and old value', () => {
         const delta = findDelta(prevValue, newValue, 'id');
 
         const finalValue = findNewValueFromDelta(prevValue, delta, 'id');
-        console.log(finalValue, 'finalValue');
+
         expect(finalValue).toEqual(newValue);
     });
 

@@ -15,20 +15,20 @@ class DFStore implements INodeStorage {
         this.store = new Map();
     }
 
-    add(key: string, value: string) {
+    async add(key: string, value: string, date?: Date) {
         this.store.set(key, value);
     }
 
-    get(key: string) {
+    async get(key: string) {
         return this.store.get(key);
     }
 
-    remove(key: string) {
+    async remove(key: string) {
         this.store.delete(key);
     }
 }
 
-const NODE_APP = BootstrapNode.init(APP, { rooms: [TodoRoom], storage: DFStore }).APP();
+const NODE_APP = BootstrapNode.init(APP, { rooms: [TodoRoom], storage: DFStore, clientKillTimeout: 60000 }).APP();
 
 NODE_APP.listen('4000', () => {
     console.log('Server is running on port 4000');

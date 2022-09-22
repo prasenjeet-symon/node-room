@@ -1,11 +1,12 @@
 import { Request, Response } from 'express';
 import { NodeRequeryRunner, NodeRunner } from '../dao-runner/dao-runner';
-import { NodeClientRunData, NodeConfig } from '../main-interface';
+import { NodeClientRunData, NodeConfig, NodeType } from '../main-interface';
+import { RoomManager } from '../room';
 import { HttpSelectManager } from '../select-managers/http-select-manager';
 import { findDelta, generateHash, isDeltaEmpty } from '../utils';
+import { RabbitMq } from './rabbit-mq';
 
 export class HttpCacheManager {
-    private httpCache: Map<string, Map<string, HttpSelectManager>> = new Map();
     private static _instance: HttpCacheManager;
 
     static getInstance(): HttpCacheManager {
@@ -16,47 +17,21 @@ export class HttpCacheManager {
     constructor() {}
 
     // add http cache
-    public async addHttpCache(http_instance: string, roomName: string, nodeName: string, nodeConfig: NodeConfig, param_object: any, result: any) {
-        if (!this.httpCache.has(http_instance)) {
-            this.httpCache.set(http_instance, new Map());
-        }
-
-        if (!this.httpCache.get(http_instance)?.has(roomName)) {
-            this.httpCache.get(http_instance)?.set(roomName, new HttpSelectManager());
-        }
-
-        return this.httpCache.get(http_instance)?.get(roomName)?.addNode(roomName, nodeName, nodeConfig.id, param_object, nodeConfig.labels, result);
+    public async addHttpCache(httpInstanceUUID: string, roomName: string, nodeName: string, nodeConfig: NodeConfig, paramObject: any, result: any) {
+        const httpSelectManager = new HttpSelectManager();
+        return await httpSelectManager.addNode(httpInstanceUUID, roomName, nodeName, nodeConfig, paramObject, result);
     }
 
-    public async getAffectedNodes(http_instance: string, roomName: string, nodeConfig: NodeConfig, param_object: any) {
-        if (!this.httpCache.has(http_instance)) {
-            return undefined;
-        }
-
-        if (!this.httpCache.get(http_instance)?.has(roomName)) {
-            return undefined;
-        }
-
-        return this.httpCache
-            .get(http_instance)
-            ?.get(roomName)
-            ?.getNode(
-                nodeConfig.labels.map((p) => p.label),
-                param_object
-            );
+    public async getAffectedNodes(httpInstanceUUID: string, roomName: string, nodeName: string, paramObject: any, nodeType: NodeType) {
+        const httpSelectManager = new HttpSelectManager();
+        const affectedNodes = await httpSelectManager.getNode(httpInstanceUUID, roomName, nodeName, paramObject, nodeType);
+        return affectedNodes;
     }
 
     // update affected dao with latest result
-    public async updateAffectedNode(http_instance: string, roomName: string, nodeIdentifier: string, latestResult: any) {
-        if (!this.httpCache.has(http_instance)) {
-            return undefined;
-        }
-
-        if (!this.httpCache.get(http_instance)?.has(roomName)) {
-            return undefined;
-        }
-
-        return this.httpCache.get(http_instance)?.get(roomName)?.updateNode(nodeIdentifier, latestResult);
+    public async updateAffectedNode(nodeIdentifier: string, roomName: string, nodeName: string, paramObject: any, latestResult: any) {
+        const httpSelectManager = new HttpSelectManager();
+        await httpSelectManager.updateNode(nodeIdentifier, roomName, nodeName, paramObject, latestResult);
     }
 }
 /**
@@ -91,10 +66,11 @@ export class HttpNetworkManager {
  *
  */
 export class HttpClient {
-    private clientInstanceUUID!: string; // received from the client
+    private clientInstanceUUID!: string;
     private canCache: boolean = false;
     private nodeRunData: NodeClientRunData;
     private httpClientHash!: string;
+    private nodeConfig!: NodeConfig;
 
     constructor(private request: Request, private response: Response) {
         if (this.request.headers['client-instance-uuid'] !== undefined && this.request.headers['can-cache'] !== undefined) {
@@ -104,6 +80,9 @@ export class HttpClient {
 
         this.nodeRunData = this.request.body;
         this.httpClientHash = generateHash(this.clientInstanceUUID, this.nodeRunData.roomName, this.nodeRunData.nodeName, this.nodeRunData.paramObject);
+        this.nodeConfig = RoomManager.getInstance().getNodeConfig(this.nodeRunData.roomName, this.nodeRunData.nodeName);
+        this.logRequest();
+
         try {
             this.runNode();
         } catch (error) {
@@ -114,11 +93,10 @@ export class HttpClient {
     // run the node now
     public async runNode() {
         const nodeRunner = new NodeRunner(this.nodeRunData.roomName, this.nodeRunData.nodeName, this.nodeRunData.paramObject);
-
         const result = await nodeRunner.run();
         const config = nodeRunner.getNodeConfig();
+        RabbitMq.getInstance().emitClientAlive(this.clientInstanceUUID);
 
-        // if we can cache and dao mode is R ( read ) then cache the result
         if (this.canCache && config.mode === 'R') {
             // add the dao to the cache
             const httpCacheManager = HttpCacheManager.getInstance();
@@ -130,13 +108,19 @@ export class HttpClient {
             // returning the result with undefined nodeIdentifier to indicate that the result is not cache able
             this.sendData({ nodeIdentifier: undefined, result: result });
         } else {
-            // incoming dao was modification dao
-            // get the affected dao due to changes
+            RabbitMq.getInstance().emitToAllServerInstances({
+                clientInstanceUUID: this.clientInstanceUUID,
+                nodeName: this.nodeRunData.nodeName,
+                roomName: this.nodeRunData.roomName,
+                paramObject: this.nodeRunData.paramObject,
+            });
+
+            // this is modification request | modification node
             const httpCacheManager = HttpCacheManager.getInstance();
-            const affectedNodes = await httpCacheManager.getAffectedNodes(this.clientInstanceUUID, this.nodeRunData.roomName, config, this.nodeRunData.paramObject);
+            const affectedNodes = await httpCacheManager.getAffectedNodes(this.clientInstanceUUID, this.nodeRunData.roomName, this.nodeRunData.nodeName, this.nodeRunData.paramObject, config.mode);
 
             // re-run all the affected dao
-            if (affectedNodes) {
+            if (affectedNodes.length !== 0) {
                 const nodeRequeryRunner = new NodeRequeryRunner(affectedNodes);
                 const requeryResult = await nodeRequeryRunner.reQuery();
 
@@ -150,9 +134,11 @@ export class HttpClient {
                     })
                     .filter((p) => !isDeltaEmpty(p.delta));
 
-                requeryResult.forEach((p) => {
-                    httpCacheManager.updateAffectedNode(this.clientInstanceUUID, this.nodeRunData.roomName, p.nodeIdentifier, p.latestResult);
-                });
+                Promise.all(
+                    requeryResult.map(async (p) => {
+                        await httpCacheManager.updateAffectedNode(p.nodeIdentifier, p.roomName, p.nodeName, p.paramObject, p.latestResult);
+                    })
+                );
 
                 // we are sending the delta to the client
                 // here nodeIdentifier is undefined because the incoming dao is modification dao which is not cache able
@@ -191,6 +177,10 @@ export class HttpClient {
 
     // log the http request
     public logRequest() {
-        console.log(`[${this.clientInstanceUUID}] ${this.nodeRunData.roomName} ${this.nodeRunData.nodeName} ${this.nodeRunData.paramObject}`);
+        console.log(
+            `[${this.clientInstanceUUID}] :: ${this.nodeRunData.roomName} - ${this.nodeRunData.nodeName} :: ${JSON.stringify(this.nodeRunData.paramObject)} :: ${
+                this.nodeConfig.mode === 'R' ? this.canCache : false
+            } :: ${this.nodeConfig.mode} :: ${new Date().toLocaleString()}`
+        );
     }
 }

@@ -3,6 +3,8 @@
     "editor.fontSize": 16,
     "editor.fontWeight": "600",
     "cSpell.words": [
+        "rabbitmq",
+        "requerying",
         "tsbuildinfo"
     ]
 }

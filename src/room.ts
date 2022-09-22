@@ -1,3 +1,5 @@
+import { NodeConfig } from "./main-interface";
+
 export class RoomManager {
     private static _instance: RoomManager;
     private rooms: Map<string, RoomClient> = new Map();
@@ -24,6 +26,15 @@ export class RoomManager {
      */
     public getNode(roomName: string, nodeName: string) {
         return this.rooms.get(roomName)?.getNode(nodeName);
+    }
+
+    /** 
+     * Get node config
+     */
+    public getNodeConfig(roomName: string, nodeName: string): NodeConfig {
+        const node = this.getNode(roomName, nodeName);
+        const instanceNode = new node();
+        return instanceNode.nodeConfig;
     }
 }
 

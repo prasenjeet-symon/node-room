@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import { NodeType } from './main-interface';
 
 export const is_pure_number = (str: string | number) => {
     if (isNaN(Number(str))) {
@@ -436,5 +437,5 @@ export function removeDuplicateValuesFromArray<T>(array: T[], ...args: string[])
 
 // Helper functions
 export function nTrue() {
-    return (self: any, mutation: any) => true;
+    return (self: any, mutation: any, type: NodeType ) => true;
 }
