@@ -1,7 +1,12 @@
 // this is in memory database
 
 // holds all the todo
-const TODOS: any[] = [];
+const TODOS: any[] = [
+    { id: 1, title: 'todo 1', completed: false, date: new Date() },
+    { id: 2, title: 'todo 2', completed: false , date: new Date()},
+    { id: 3, title: 'todo 3', completed: false , date: new Date()},
+    { id: 4, title: 'todo 4', completed: false , date: new Date()},
+];
 
 export class TodoDatabase {
     constructor() {}

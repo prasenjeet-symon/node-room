@@ -28,7 +28,7 @@ class DFStore implements INodeStorage {
     }
 }
 
-const NODE_APP = BootstrapNode.init(APP, { rooms: [TodoRoom], storage: DFStore, clientKillTimeout: 60000 }).APP();
+const NODE_APP = BootstrapNode.init(APP, { rooms: [TodoRoom], storage: DFStore, clientKillTimeout: 3600000 }).APP();
 
 NODE_APP.listen('4000', () => {
     console.log('Server is running on port 4000');
