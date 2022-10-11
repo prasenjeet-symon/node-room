@@ -1,23 +1,24 @@
-import { INodeStorage, NodeStorageClass, NodeType, SelectCache } from '../main-interface';
+import { NodeType, SelectCache } from '../main-interface';
 import { RoomManager } from '../room';
 import { generateHASH, removeDuplicateValuesFromArray } from '../utils';
+import { StorageManager } from './http-select-manager';
 
-export class HttpSelectManager {
+export class CentralSelectManager {
     constructor() {}
 
-    private getLabelStorageKey(clientInstanceUUID: string, roomName: string) {
-        return clientInstanceUUID + roomName + 'labels';
+    private getLabelStorageKey(roomName: string) {
+        return 'nodeRoom' + roomName + 'labels';
     }
 
-    private getParamStorageKey(clientInstanceUUID: string, roomName: string) {
-        return clientInstanceUUID + roomName + 'params';
+    private getParamStorageKey(roomName: string) {
+        return 'nodeRoom' + roomName + 'params';
     }
 
-    public async addNode(clientInstanceUUID: string, roomName: string, nodeName: string, paramObject: any, result: any) {
-        const labelStorageKey = this.getLabelStorageKey(clientInstanceUUID, roomName);
-        const paramStorageKey = this.getParamStorageKey(clientInstanceUUID, roomName);
+    public async addNode(roomName: string, nodeName: string, paramObject: any, result: any) {
+        const labelStorageKey = this.getLabelStorageKey(roomName);
+        const paramStorageKey = this.getParamStorageKey(roomName);
 
-        const nodeIdentifier = generateHASH([clientInstanceUUID, roomName, nodeName, JSON.stringify(paramObject)]);
+        const nodeIdentifier = generateHASH([roomName, nodeName, JSON.stringify(paramObject)]);
         const nodeConfig = RoomManager.getInstance().getNodeConfig(roomName, nodeName);
 
         const previousParamObjectString = await StorageManager.getInstance().storage.get(paramStorageKey);
@@ -48,9 +49,9 @@ export class HttpSelectManager {
         return nodeIdentifier;
     }
 
-    public async getNode(clientInstanceUUID: string, roomName: string, nodeName: string, paramObject: any, nodeType: NodeType): Promise<SelectCache[]> {
+    public async getNode(roomName: string, nodeName: string, paramObject: any, nodeType: NodeType): Promise<SelectCache[]> {
         const modificationNodeConfig = RoomManager.getInstance().getNodeConfig(roomName, nodeName);
-        const labelStorageKey = this.getLabelStorageKey(clientInstanceUUID, roomName);
+        const labelStorageKey = this.getLabelStorageKey(roomName);
 
         const labelsHashMapString = await StorageManager.getInstance().storage.get(labelStorageKey);
         const labelsHashMap = labelsHashMapString ? JSON.parse(labelsHashMapString) : {};
@@ -68,7 +69,7 @@ export class HttpSelectManager {
 
         const matchedLabelsWithNodeIdentifierUnique = removeDuplicateValuesFromArray(matchedLabelsWithNodeIdentifier, 'nodeIdentifier', 'label');
 
-        const paramStorageKey = this.getParamStorageKey(clientInstanceUUID, roomName);
+        const paramStorageKey = this.getParamStorageKey(roomName);
         const paramObjectString = await StorageManager.getInstance().storage.get(paramStorageKey);
         const paramObjectArray: { nodeIdentifier: string; roomName: string; nodeName: string; paramObject: any }[] = paramObjectString ? JSON.parse(paramObjectString) : [];
 
@@ -121,23 +122,5 @@ export class HttpSelectManager {
     // update the nodes with latest result
     public async updateNode(nodeIdentifier: string, roomName: string, nodeName: string, paramObject: any, result: any) {
         await StorageManager.getInstance().storage.add(nodeIdentifier, JSON.stringify({ paramObject, roomName, nodeName, result }));
-    }
-}
-
-// storage manager abstract class
-export class StorageManager {
-    private static _instance: StorageManager;
-    public storage: INodeStorage;
-
-    static initInstance(storage: NodeStorageClass) {
-        if (!StorageManager._instance) StorageManager._instance = new StorageManager(storage);
-    }
-
-    private constructor(storage: NodeStorageClass) {
-        this.storage = new storage();
-    }
-
-    static getInstance(): StorageManager {
-        return StorageManager._instance;
     }
 }

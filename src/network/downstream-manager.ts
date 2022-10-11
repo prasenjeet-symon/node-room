@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { NodeRequeryRunner } from '../dao-runner/dao-runner';
-import { RabbitMQMessage } from '../main-interface';
+import { INodeBrokerMsg } from '../main-interface';
 import { RoomManager } from '../room';
 import { findDelta, isDeltaEmpty } from '../utils';
 import { HttpCacheManager } from './http-manager';
@@ -28,7 +28,7 @@ export class DownStreamManager {
         delete this._downstreamNodes[clientInstanceUUID];
     }
 
-    // get all downstream clients's http client uuid
+    // get all downstream id
     private getDownStreamClients() {
         return Object.keys(this._downstreamNodes);
     }
@@ -39,10 +39,10 @@ export class DownStreamManager {
     }
 
     // modification node received
-    public modificationNodeReceived(msg: RabbitMQMessage) {
-        const allClients = this.getDownStreamClients().filter((p) => p !== msg.clientInstanceUUID);
-        const promises = allClients.map(async (clientInstanceUUID) => {
-            await this.emitChangeToDownStreamClient(clientInstanceUUID, msg.roomName, msg.nodeName, msg.paramObject);
+    public modificationNodeReceived(msg: INodeBrokerMsg) {
+        const allClients = this.getDownStreamClients();
+        const promises = allClients.map((clientInstanceUUID) => {
+            return this.emitChangeToDownStreamClient(clientInstanceUUID, msg.roomName, msg.nodeName, msg.paramObject);
         });
 
         return Promise.all(promises);
@@ -53,38 +53,37 @@ export class DownStreamManager {
         const nodeConfig = RoomManager.getInstance().getNodeConfig(roomName, nodeName);
         const httpCacheManager = HttpCacheManager.getInstance();
         const affectedNodes = await httpCacheManager.getAffectedNodes(clientInstanceUUID, roomName, nodeName, paramObject, nodeConfig.mode);
+        if (affectedNodes.length === 0) return;
 
-        if (affectedNodes.length !== 0) {
-            const nodeRequeryRunner = new NodeRequeryRunner(affectedNodes);
-            const requeryResult = await nodeRequeryRunner.reQuery();
+        const nodeRequeryRunner = new NodeRequeryRunner(affectedNodes);
+        const requeryResult = await nodeRequeryRunner.reQuery();
 
-            const withDelta = requeryResult
-                .map((p) => {
-                    return {
-                        nodeIdentifier: p.nodeIdentifier,
-                        id: p.id,
-                        delta: findDelta(p.result, p.latestResult, p.id),
-                    };
-                })
-                .filter((p) => !isDeltaEmpty(p.delta));
+        const withDelta = requeryResult
+            .map((p) => {
+                return {
+                    nodeIdentifier: p.nodeIdentifier,
+                    id: p.id,
+                    delta: findDelta(p.result, p.latestResult, p.id),
+                };
+            })
+            .filter((p) => !isDeltaEmpty(p.delta));
 
-            Promise.all(
-                requeryResult.map(async (p) => {
-                    return httpCacheManager.updateAffectedNode(p.nodeIdentifier, p.roomName, p.nodeName, p.paramObject, p.latestResult);
-                })
-            );
+        Promise.all(
+            requeryResult.map(async (p) => {
+                return httpCacheManager.updateAffectedNode(p.nodeIdentifier, p.roomName, p.nodeName, p.paramObject, p.latestResult);
+            })
+        );
 
-            // we are sending the delta to the client
-            // here nodeIdentifier is undefined because the incoming dao is modification dao which is not cache able
-            const downStreamData = {
-                nodeIdentifier: undefined,
-                result: undefined,
-                delta: withDelta.length > 0 ? withDelta : undefined,
-            };
+        // we are sending the delta to the client
+        // here nodeIdentifier is undefined because the incoming dao is modification dao which is not cache able
+        const downStreamData = {
+            nodeIdentifier: undefined,
+            result: undefined,
+            delta: withDelta.length > 0 ? withDelta : undefined,
+        };
 
-            const downstream = this.getDownStreamClient(clientInstanceUUID);
-            downstream.writeData(downStreamData);
-        }
+        const downstream = this.getDownStreamClient(clientInstanceUUID);
+        downstream.writeData(downStreamData);
     }
 }
 

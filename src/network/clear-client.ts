@@ -1,4 +1,4 @@
-import { RabbitMq } from './rabbit-mq';
+import { ServerManager } from '../server-manager';
 
 export class ClientInstanceManager {
     private static _instance: ClientInstanceManager;
@@ -29,6 +29,12 @@ export class ClientInstanceManager {
     }
 }
 
+// client instance is the browser connected to node room server
+// that client instance should disconnect ( die ) after some time
+// thats why we are receiving the dieAfter argument
+// this will get created at the time of client registration
+// this cannot be duplicated on the other server , so make sure to check the cache for the client registration key on distributed cache
+// if the client registration key already exit then do not create this client instance
 export class ClientInstance {
     private timeOutRef: any = null;
 
@@ -39,17 +45,20 @@ export class ClientInstance {
     }
 
     private killClientInstance() {
-        console.log('ClientInstance: ' + this.clientInstanceUUID + ' is dead');
         // TODO : clean the cache database
 
         clearTimeout(this.timeOutRef);
-        RabbitMq.getInstance().emitClientDead(this.clientInstanceUUID);
+
+        ServerManager.getInstance()
+            .getBroker()
+            .publish(JSON.stringify({ type: 'clientDead', data: this.clientInstanceUUID }));
         ClientInstanceManager.getInstance().removeClientInstance(this.clientInstanceUUID);
     }
 
-    // client is alive
+    // if the client is fetching any node then we need to extend the death time
+    // but if the client is not sending any node for long period of time this means client id dead and we need to free up the memory
     public clientIsAlive() {
-        console.log('ClientInstance: ' + this.clientInstanceUUID + ' is alive');
+        console.info('ClientInstance: ' + this.clientInstanceUUID + ' is alive');
         clearTimeout(this.timeOutRef);
         this.timeOutRef = setTimeout(() => {
             this.killClientInstance();

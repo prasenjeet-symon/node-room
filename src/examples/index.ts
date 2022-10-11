@@ -1,7 +1,8 @@
 import cors from 'cors';
 import express from 'express';
-import { BootstrapNode } from '..';
-import { INodeStorage } from '../main-interface';
+import { NodeRoom } from '../bootstrap';
+import { INodeBroker, INodeStorage } from '../main-interface';
+import { EventEmitterManager } from '../network/event-manager';
 import { TodoRoom } from './room';
 
 const APP = express();
@@ -15,7 +16,7 @@ class DFStore implements INodeStorage {
         this.store = new Map();
     }
 
-    async add(key: string, value: string, date?: Date) {
+    async add(key: string, value: string) {
         this.store.set(key, value);
     }
 
@@ -28,7 +29,19 @@ class DFStore implements INodeStorage {
     }
 }
 
-const NODE_APP = BootstrapNode.init(APP, { rooms: [TodoRoom], storage: DFStore, clientKillTimeout: 3600000 }).APP();
+class NodeBroker implements INodeBroker {
+    constructor() {}
+
+    public async publish(msg: string) {
+        EventEmitterManager.getInstance().emit('msg', msg);
+    }
+
+    public async subscribe(callback: (msg: string) => void) {
+        EventEmitterManager.getInstance().on('msg', callback);
+    }
+}
+
+const NODE_APP = NodeRoom.init(APP, { clientKillTimeout: 100000, rooms: [TodoRoom], storage: DFStore, broker: NodeBroker }).app();
 
 NODE_APP.listen('4000', () => {
     console.log('Server is running on port 4000');

@@ -1,6 +1,6 @@
 import console from 'console';
 import { Application, Request, Response } from 'express';
-import { BootstrapConfig } from './main-interface';
+import { NodeRoomConfig } from './main-interface';
 import { ClientInstanceManager } from './network/clear-client';
 import { ClientRegistration } from './network/client-registration';
 import { DownStreamClient, DownStreamManager } from './network/downstream-manager';
@@ -9,26 +9,16 @@ import { RoomClient, RoomManager } from './room';
 import { StorageManager } from './select-managers/http-select-manager';
 import { ServerManager } from './server-manager';
 
-export class BootstrapNode {
-    private static _instance: BootstrapNode;
-    private app: Application; // An Express application
+export class NodeRoom {
+    private static instance: NodeRoom;
 
-    public static init(app: Application, config: BootstrapConfig): BootstrapNode {
-        if (!BootstrapNode._instance) {
-            BootstrapNode._instance = new BootstrapNode(app, config);
-        }
-
-        return BootstrapNode._instance;
+    public static init(application: Application, config: NodeRoomConfig): NodeRoom {
+        if (!NodeRoom.instance) NodeRoom.instance = new NodeRoom(application, config);
+        return NodeRoom.instance;
     }
 
-    public APP() {
-        return this.app;
-    }
-
-    private constructor(app: Application, config: BootstrapConfig) {
-        ServerManager.getInstance();
-        ServerManager.getInstance().clientKillTimeout = config.clientKillTimeout;
-        this.app = app;
+    private constructor(private application: Application, private config: NodeRoomConfig) {
+        ServerManager.initInstance(this.config);
         HttpCacheManager.getInstance();
         RoomManager.getInstance();
         HttpNetworkManager.getInstance();
@@ -41,38 +31,46 @@ export class BootstrapNode {
         }
 
         // register the client
-        this.app.post('/node-room-client-registration', (req: Request, res: Response) => {
+        this.application.post('/node-room-client-registration', (req: Request, res: Response) => {
             new ClientRegistration(req, res)
                 .register()
                 .then(() => {
                     res.send({ status: 'success' });
                 })
                 .catch((err) => {
-                    console.error(err);
                     res.send({ status: 'error' });
                 });
         });
 
         // SSE connection
-        this.app.get('/node-room-sse/:clientInstanceUUID', async (req: Request, res: Response) => {
-            // check if the client is registered
+        // if the client instance do not exit on the distributed cache the do not connect to the downstream
+        this.application.get('/node-room-sse/:clientInstanceUUID', async (req: Request, res: Response) => {
+            if (!('clientInstanceUUID' in req.params)) {
+                res.status(404).send('Not found');
+                return;
+            }
+
             const key = `client-${req.params.clientInstanceUUID}`;
             const clientInstanceUUID = await StorageManager.getInstance().storage.get(key);
-            // verified the client
-            if (clientInstanceUUID) {
-                const downstreamClient = new DownStreamClient(req, res);
-                DownStreamManager.getInstance().addDownStreamClient(downstreamClient);
-            } else {
+
+            if (!clientInstanceUUID) {
                 res.status(404).send('Not found');
+                return;
             }
+
+            DownStreamManager.getInstance().addDownStreamClient(new DownStreamClient(req, res));
         });
 
         // attach the post request handler
-        this.app.post('/node-room', (req: Request, res: Response) => {
+        this.application.post('/node-room', (req: Request, res: Response) => {
             const httpClient = new HttpClient(req, res);
             HttpNetworkManager.getInstance().addHttpClient(httpClient);
         });
 
         console.info('node-room is ready');
+    }
+
+    public app() {
+        return this.application;
     }
 }

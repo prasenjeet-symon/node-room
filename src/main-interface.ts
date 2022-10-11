@@ -52,24 +52,28 @@ export interface Label {
 }
 
 // bootstrap config
-export interface BootstrapConfig {
+export interface NodeRoomConfig {
     rooms: any[];
     storage: NodeStorageClass;
+    broker: NodeBrokerClass;
     clientKillTimeout: number;
 }
 
-// for the node result storage
 export interface INodeStorage {
     add: (key: string, value: string, date?: Date) => Promise<void>;
     get: (key: string) => Promise<string | undefined>;
     remove: (key: string) => Promise<void>;
 }
 
-// class type that implements INodeStorage
-export type NodeStorageClass = new () => INodeStorage;
+export interface INodeBroker {
+    publish: (msg: string) => Promise<void>;
+    subscribe: (callback: (msg: string) => void) => Promise<void>;
+}
 
-// rabbit mq message
-export interface RabbitMQMessage {
+export type NodeStorageClass = new () => INodeStorage;
+export type NodeBrokerClass = new () => INodeBroker;
+
+export interface INodeBrokerMsg {
     clientInstanceUUID: string;
     roomName: string;
     nodeName: string;

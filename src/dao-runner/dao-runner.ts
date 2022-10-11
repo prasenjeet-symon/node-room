@@ -1,4 +1,4 @@
-import { NodeConfig, SelectCache, SelectCacheRequery } from '../main-interface';
+import { SelectCache, SelectCacheRequery } from '../main-interface';
 import { RoomManager } from '../room';
 
 export class NodeRunner {
@@ -18,10 +18,6 @@ export class NodeRunner {
         } catch (error) {
             throw error;
         }
-    }
-
-    public getNodeConfig(): NodeConfig {
-        return this.nodeInstance.nodeConfig;
     }
 }
 
