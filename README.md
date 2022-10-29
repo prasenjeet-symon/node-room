@@ -109,7 +109,7 @@ Practically room is nothing but a class with node as public property. The `@Room
     APP.use(express.json());
 
     // add node room the application
-    const NODE_ROOM_APP = NodeRoom.init(APP,{ clientKillTimeout: 100000, rooms: [TodoRoom], storage: DFStore, broker: NodeBroker }).app();
+    const NODE_ROOM_APP = NodeRoom.init(APP,{ clientKillTimeout: 100000, rooms: [TodoRoom], storage: DFStore, broker: NodeBroker, strategy: 'cacheWithClient' }).app();
 
     // start the server
     NODE_APP.listen(3000, () => {
@@ -130,6 +130,9 @@ The `NodeRoom.init` method takes three arguments:
     3. `storage` - The storage that you want to use. You can also create your own storage. The storage should implement the `INodeStorage` interface. This is key value storage. You can use any famous key value storage like `Redis`, `MongoDB`, `LevelDB`, `Memcached` etc. If you are planning to use single server, then just use Map as storage.
 
     4. `broker` - The broker that you want to use. You can also create your own broker. The broker should implement the `INodeBroker` interface. You can use any famous message broker like `RabbitMQ`, `Kafka`, `Redis` etc. If you are planning to use single server, then just use `EventEmitterManager` from node-room as broker.
+
+    5. `strategy` - The strategy can be either `cacheWithClient` or `cacheThenClient`. The `cacheWithClient` strategy means that the subscribers of the room will receive the changes once the modification node is completed. The `cacheThenClient` strategy means that the subscribers of the room will receive the changes once the modification node is completed and the cache is updated. The `cacheWithClient` strategy reduces the latency but it can increase the query to master database. The `cacheThenClient` strategy increases the latency slightly but it reduces the query to master database significantly. So choose the strategy according to your use case. We will discuss about the strategies in detail in the next section.
+
 
 
 *** ***
@@ -181,7 +184,29 @@ export class NodeBroker implements INodeBroker {
 
 ### Is NodeRoom same as react-query ?
 
-No , NodeRoom is not same as react-query. NodeRoom is more like socket.io. 
+No , NodeRoom is not same as react-query. NodeRoom is more like socket.io.
+
+NodeRoom is designed with following goals in mind:
+
+1. It should be easy to use.
+
+2. It should be compatible with any databases.
+
+3. It should be horizontally scalable.
+
+4. It should reduce the load on master database by intelligently caching the data.
+
+5. It should consume as less network bandwidth as possible.
+
+6. It should uplift the client side state management libraries like mobx, redux etc. on the server side. So that developers can ship less javascript code to the client with less memory footprint.
+
+7. It should be easy to integrate with existing applications as middleware without changing the existing code.
+
+Please note that react-query may not be able to fulfill all the above goals. It is designed to solve a different problem. It is designed to solve the problem of fetching data from the server. It is not designed to solve the problem of syncing data between the server and the client. So it is not a replacement of NodeRoom.
+
+> NodeRoom intelligently sync the data between the server and the client by only sending delta.
+
+Imagine thousands of rows in which only some properties of single row is changed due to mutation node. NodeRoom will only send the changed properties of that single row to the client. It will not send the entire rows again. So it will reduce the network bandwidth significantly unlike react-query.
 
 ### How to talk to NodeRoom from client ?
 
@@ -194,4 +219,77 @@ If you are using Angular the just use `node-room-client` package. You can use `n
 > Please note that we currently do not support `pure http client` like `axios`. We are working on it. We will release it soon.
 
 > Pure http client can be used by the third party server for the purpose of calling mutation node.
+
+*** ***
+### How to make mutation node ?
+
+```js
+import { Node , nTrue} from 'node-room';
+
+@Node({ mode: 'U', labels: [{ label: 'MY_FIRST_MUTATION_NODE', when: nTrue() }] })
+export class UpdateSomething {
+    
+    @Query()
+    async fetch(param1, param2) {
+        // You can check the param1 and param2 here if you want for security purpose.
+        // Just throw an error if you want to stop the execution of the node and send the error to the client.
+
+       // perform your update operation here
+       // below is just a dummy code
+
+       const myDatabase = new MyDatabase();
+       return myDatabase.updateSomething(param1, param2);
+       
+       // end of dummy code
+    }
+}
+```
+
+Note that we have used `U` as mode. This means that this node is a mutation node or more specifically an update node. You can also use `C` for create node and `D` for delete node.
+
+Also we have used `nTrue()` as when function for one of our label `MY_FIRST_MUTATION_NODE`. This means that this label will be applied to the node because `nTrue` always returns true no matter what. Currently we encourage to use `nTrue` as when function for all mutation nodes.
+
+### How to make query node ?
+
+```js
+import { Node , nTrue} from 'node-room';
+import {someWhenFunction} from './when-functions';
+
+@Node({ id: '_id' mode: 'R', labels: [{ label: 'MY_FIRST_QUERY_NODE', when: someWhenFunction() }] })
+export class FetchSomething {
+    
+    @Query()
+    async fetch(param1, param2) {
+        // You can check the param1 and param2 here if you want for security purpose.
+        // Just throw an error if you want to stop the execution of the node and send the error to the client.
+
+       // perform your query operation here
+       // below is just a dummy code
+
+       const myDatabase = new MyDatabase();
+       return myDatabase.fetchSomething(param1, param2);
+       
+       // end of dummy code
+    }
+}
+```
+
+Note that we have used `R` as mode. This means that this node is a query node. 
+
+Also we have used `someWhenFunction` as when function for one of our label `MY_FIRST_QUERY_NODE`. This means that this label will be applied to the node if `someWhenFunction` returns true.
+
+### Intelligent caching strategy for query node
+
+We have implemented intelligent caching strategy for query node. NodeRoom will cache the result of the query node for a particular **set of parameters**. If the same query node is called with the same set of parameters then NodeRoom will return the cached result instead of calling the master database. This will **significantly reduce the load on the master database** and will make your application **blazing fast**.
+
+In the **given room** NodeRoom considers the node subscription as duplicate if the following conditions are met.
+
+1. The node is a query node.
+2. The node is subscribed with the same set of parameters.
+
+Duplicate node always returns the cached result. If the cached result is not available then it will call the master database and then cache the result. 
+
+Upon receiving the mutation node NodeRoom will invalidate the cache of affected duplicate nodes. This will ensure that the duplicate nodes will always return the latest result.
+
+> Obviously the mutation is not cached. So the mutation node will always call the master database.
 
