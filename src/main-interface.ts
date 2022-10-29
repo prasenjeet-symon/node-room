@@ -19,12 +19,13 @@ export interface SelectCacheRequery {
     latestResult: any;
 }
 
-export type NodeType = 'T' | 'C' | 'R' | 'U' | 'D';
+export type NodeType = 'C' | 'R' | 'U' | 'D';
+export type NodeRoomStrategy = 'cacheThenClient' | 'cacheWithClient';
 
 // dao query config
 export interface NodeConfig {
     mode: NodeType;
-    id: string;
+    id?: string;
     labels: Label[];
 }
 
@@ -57,6 +58,7 @@ export interface NodeRoomConfig {
     storage: NodeStorageClass;
     broker: NodeBrokerClass;
     clientKillTimeout: number;
+    strategy: NodeRoomStrategy;
 }
 
 export interface INodeStorage {

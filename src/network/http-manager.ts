@@ -96,14 +96,15 @@ export class HttpClient {
 
     // run the node now
     public async runNode() {
+        // Notify that client is alive
         ServerManager.getInstance()
             .getBroker()
             .publish(JSON.stringify({ type: 'clientAlive', data: this.clientInstanceUUID }));
 
         if (this.canCache && this.nodeConfig.mode === 'R') {
             const result = await CentralCacheManager.getInstance().query(this.nodeRunData.roomName, this.nodeRunData.nodeName, this.nodeRunData.paramObject);
-            const httpCacheManager = HttpCacheManager.getInstance();
-            const nodeIdentifier = await httpCacheManager.addNode(this.clientInstanceUUID, this.nodeRunData.roomName, this.nodeRunData.nodeName, this.nodeRunData.paramObject, result);
+            
+            const nodeIdentifier = await HttpCacheManager.getInstance().addNode(this.clientInstanceUUID, this.nodeRunData.roomName, this.nodeRunData.nodeName, this.nodeRunData.paramObject, result);
             this.sendData({ nodeIdentifier, result });
         } else if (!this.canCache && this.nodeConfig.mode === 'R') {
             const result = await CentralCacheManager.getInstance().query(this.nodeRunData.roomName, this.nodeRunData.nodeName, this.nodeRunData.paramObject);
@@ -114,7 +115,11 @@ export class HttpClient {
             const nodeRunner = new NodeRunner(this.nodeRunData.roomName, this.nodeRunData.nodeName, this.nodeRunData.paramObject);
             const result = await nodeRunner.run();
 
-            CentralCacheManager.getInstance().modificationNodeReceived(this.nodeRunData.roomName, this.nodeRunData.nodeName, this.nodeRunData.paramObject);
+            if (ServerManager.getInstance().getConfig().strategy === 'cacheThenClient') {
+                await CentralCacheManager.getInstance().modificationNodeReceived(this.nodeRunData.roomName, this.nodeRunData.nodeName, this.nodeRunData.paramObject);
+            } else {
+                CentralCacheManager.getInstance().modificationNodeReceived(this.nodeRunData.roomName, this.nodeRunData.nodeName, this.nodeRunData.paramObject);
+            }
 
             ServerManager.getInstance()
                 .getBroker()

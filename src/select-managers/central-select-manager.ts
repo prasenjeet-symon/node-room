@@ -14,11 +14,10 @@ export class CentralSelectManager {
         return 'nodeRoom' + roomName + 'params';
     }
 
-    public async addNode(roomName: string, nodeName: string, paramObject: any, result: any) {
+    public async addNode(nodeIdentifier:string ,roomName: string, nodeName: string, paramObject: any, result: any) {
         const labelStorageKey = this.getLabelStorageKey(roomName);
         const paramStorageKey = this.getParamStorageKey(roomName);
 
-        const nodeIdentifier = generateHASH([roomName, nodeName, JSON.stringify(paramObject)]);
         const nodeConfig = RoomManager.getInstance().getNodeConfig(roomName, nodeName);
 
         const previousParamObjectString = await StorageManager.getInstance().storage.get(paramStorageKey);

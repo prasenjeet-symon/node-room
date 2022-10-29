@@ -41,7 +41,7 @@ class NodeBroker implements INodeBroker {
     }
 }
 
-const NODE_APP = NodeRoom.init(APP, { clientKillTimeout: 100000, rooms: [TodoRoom], storage: DFStore, broker: NodeBroker }).app();
+const NODE_APP = NodeRoom.init(APP, { clientKillTimeout: 100000, rooms: [TodoRoom], storage: DFStore, broker: NodeBroker, strategy: 'cacheWithClient' }).app();
 
 NODE_APP.listen('4000', () => {
     console.log('Server is running on port 4000');

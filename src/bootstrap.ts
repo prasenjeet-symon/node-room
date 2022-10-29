@@ -1,4 +1,4 @@
-import console from 'console';
+
 import { Application, Request, Response } from 'express';
 import { NodeRoomConfig } from './main-interface';
 import { ClientInstanceManager } from './network/clear-client';

@@ -1,11 +1,19 @@
 // this is in memory database
 
+const delayExc = (ms: number) => {
+   return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            resolve('');
+        }, ms);
+    });
+};
+
 // holds all the todo
 const TODOS: any[] = [
     { id: 1, title: 'todo 1', completed: false, date: new Date() },
-    { id: 2, title: 'todo 2', completed: false , date: new Date()},
-    { id: 3, title: 'todo 3', completed: false , date: new Date()},
-    { id: 4, title: 'todo 4', completed: false , date: new Date()},
+    { id: 2, title: 'todo 2', completed: false, date: new Date() },
+    { id: 3, title: 'todo 3', completed: false, date: new Date() },
+    { id: 4, title: 'todo 4', completed: false, date: new Date() },
 ];
 
 export class TodoDatabase {
@@ -51,11 +59,10 @@ export class TodoDatabase {
     }
 
     // get limited todo
-    public getLimitedTodos(offset: number, limit: number) {
-        
+    public async getLimitedTodos(offset: number, limit: number) {
         // sort by date and then get the limited todo
-        const jk =  TODOS.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(offset, offset + limit);
-        
+        const jk = TODOS.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(offset, offset + limit);
+        await delayExc(10000);
         return jk;
     }
 }

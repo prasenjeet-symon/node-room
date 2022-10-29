@@ -8,7 +8,7 @@ export function Node(config: NodeConfig) {
                 super(args);
             }
 
-            public nodeConfig: NodeConfig = config;
+            public nodeConfig: NodeConfig = { ...config, id: 'id' in config ? config.id : undefined };
             public param_object: any = null;
         };
     };

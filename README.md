@@ -177,4 +177,21 @@ export class NodeBroker implements INodeBroker {
 ```
 
 
+*** ***
+
+### Is NodeRoom same as react-query ?
+
+No , NodeRoom is not same as react-query. NodeRoom is more like socket.io. 
+
+### How to talk to NodeRoom from client ?
+
+You can use `node-room-client` package to talk to NodeRoom from client. You can find the documentation of `node-room-client` [here]( https://github.com/node-room/node-room-client ) .
+
+This is core client library. We extended this library to create `react-node`. You can find the documentation of `react-node` [here](https://github.com/node-room/react-node) . This is react specific library. You can use this library to talk to NodeRoom from react application.
+
+If you are using Angular the just use `node-room-client` package. You can use `node-room-client` package with any framework. You can also use `node-room-client` package with plain javascript.
+
+> Please note that we currently do not support `pure http client` like `axios`. We are working on it. We will release it soon.
+
+> Pure http client can be used by the third party server for the purpose of calling mutation node.
 
