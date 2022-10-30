@@ -1,5 +1,9 @@
 # Build Horizontally Scalable Real-Time Applications with NodeRoom
 
+<p align="center">
+    <img style="width:50%" src="./assets/NodeRoomLogo.png">
+<p>
+
 NodeRoom is a Node.js framework for building horizontally scalable real-time applications. It is built on top of [Express](http://expressjs.com/). It does not use WebSockets, but instead uses SSE (Server Sent Events) to achieve real-time communication.
 
 >NodeRoom is a work in progress. It is not ready for production use.
