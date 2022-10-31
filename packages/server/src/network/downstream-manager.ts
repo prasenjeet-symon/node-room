@@ -25,7 +25,16 @@ export class DownStreamManager {
 
     // remove a downstream client
     public removeDownStreamClient(clientInstanceUUID: string) {
+        this._downstreamNodes[clientInstanceUUID].closeConnection();
         delete this._downstreamNodes[clientInstanceUUID];
+    }
+
+    // remove all downstream client
+    public removeAllDownStreamClient() {
+        for (const clientInstanceUUID in this._downstreamNodes) {
+            this._downstreamNodes[clientInstanceUUID].closeConnection();
+            delete this._downstreamNodes[clientInstanceUUID];
+        }
     }
 
     // get all downstream id
@@ -104,5 +113,10 @@ export class DownStreamClient {
     // write data to sse
     public writeData(data: any) {
         this.res.write(`data: ${JSON.stringify(data)} \n\n`);
+    }
+
+    // close connection
+    public closeConnection() {
+        this.res.end();
     }
 }

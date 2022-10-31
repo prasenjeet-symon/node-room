@@ -1,5 +1,6 @@
 import { createHash } from 'crypto';
 import { NodeType } from './main-interface';
+import { DownStreamManager } from './network/downstream-manager';
 
 export const is_pure_number = (str: string | number) => {
     if (isNaN(Number(str))) {
@@ -47,7 +48,14 @@ export function is_two_array_intersect(arr_left: (string | number)[], arr_right:
 
 export function isObject(value: any) {
     try {
-        if (typeof value === 'boolean' || typeof value === 'number' || typeof value === 'string' || typeof value === 'bigint' || typeof value === 'function' || typeof value === 'symbol') {
+        if (
+            typeof value === 'boolean' ||
+            typeof value === 'number' ||
+            typeof value === 'string' ||
+            typeof value === 'bigint' ||
+            typeof value === 'function' ||
+            typeof value === 'symbol'
+        ) {
             return false;
         } else {
             if (value.length) {
@@ -68,7 +76,14 @@ export function isArray(value: any) {
 }
 
 export function isPrimitive(value: any) {
-    if (typeof value === 'boolean' || typeof value === 'number' || typeof value === 'string' || typeof value === 'bigint' || typeof value === 'function' || typeof value === 'symbol') {
+    if (
+        typeof value === 'boolean' ||
+        typeof value === 'number' ||
+        typeof value === 'string' ||
+        typeof value === 'bigint' ||
+        typeof value === 'function' ||
+        typeof value === 'symbol'
+    ) {
         return true;
     } else {
         return false;
@@ -431,6 +446,11 @@ export function generateHASH(digestStr: string[]) {
     digestStr.forEach((str) => {
         hash.update(str);
     });
-    
+
     return hash.digest('hex');
+}
+
+// close the node room
+export function closeNodeRoom() {
+    DownStreamManager.getInstance().removeAllDownStreamClient();
 }

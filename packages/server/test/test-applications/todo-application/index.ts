@@ -1,8 +1,6 @@
 import cors from 'cors';
 import express from 'express';
-import { NodeRoom } from '../bootstrap';
-import { INodeBroker, INodeStorage } from '../main-interface';
-import { EventEmitterManager } from '../network/event-manager';
+import { EventEmitterManager, INodeBroker, INodeStorage, NodeRoom } from '../../../src';
 import { TodoRoom } from './room';
 
 const APP = express();
@@ -41,8 +39,4 @@ class NodeBroker implements INodeBroker {
     }
 }
 
-const NODE_APP = NodeRoom.init(APP, { clientKillTimeout: 100000, rooms: [TodoRoom], storage: DFStore, broker: NodeBroker, strategy: 'cacheThenClient' }).app();
-
-NODE_APP.listen('4000', () => {
-    console.log('Server is running on port 4000');
-});
+export const NODE_APP = NodeRoom.init(APP, { clientKillTimeout: 100000, rooms: [TodoRoom], storage: DFStore, broker: NodeBroker, strategy: 'cacheThenClient' }).app();
