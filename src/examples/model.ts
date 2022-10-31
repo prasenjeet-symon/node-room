@@ -1,7 +1,7 @@
 // this is in memory database
 
 const delayExc = (ms: number) => {
-   return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
         setTimeout(() => {
             resolve('');
         }, ms);
@@ -62,7 +62,6 @@ export class TodoDatabase {
     public async getLimitedTodos(offset: number, limit: number) {
         // sort by date and then get the limited todo
         const jk = TODOS.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(offset, offset + limit);
-        await delayExc(10000);
         return jk;
     }
 }
