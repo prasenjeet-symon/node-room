@@ -125,8 +125,8 @@ export function findNewValueFromDelta(oldValue: any, delta: any, id: string) {
 
                 // merge the new item at the proper position
                 allNewElements.forEach((element: any) => {
-                    const ref = element.pRef;
-                    if (ref === null) {
+                    const ref = 'pRef' in element ? element.pRef : false;
+                    if (!ref) {
                         // push to the top of the array
                         // delete the ref and nr key
                         delete element.pRef;
@@ -282,7 +282,7 @@ export function isNode() {
 
 // for node js
 export class NodeJsConfig {
-    private nodeJsConfig!:{ nodeFetch: any; nodeEventSource: any };
+    private nodeJsConfig!: { nodeFetch: any; nodeEventSource: any };
     private static _instance: NodeJsConfig;
 
     private constructor() {}

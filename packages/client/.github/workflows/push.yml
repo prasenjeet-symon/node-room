@@ -1,0 +1,36 @@
+
+// test on pull requests 
+
+name:  Test  on  pull  requests
+
+on:
+  pull_request:
+    branches:
+      -  master 
+      -  develop
+
+jobs:
+  test:
+    runs-on:  ubuntu-latest 
+    steps:
+      -  uses:  actions/checkout@v2 
+      -  uses:  actions/setup-node@v1 
+         with:
+          node-version:  12 
+      -  run:  npm ci 
+      -  run:  npm run test 
+      -  run:  npm run build 
+      -  run:  npm run lint 
+      -  run:  npm run typecheck 
+      -  run:  npm run test:coverage 
+        env:
+          CI:  true 
+      -  uses:  codecov/codecov-action@v1 
+         with:
+          token:  ${{ secrets.CODECOV_TOKEN }} 
+          file:  ./coverage/coverage-final.json 
+          flags:  unittests 
+          name:  codecov-umbrella 
+          fail_ci_if_error:  true
+
+          

@@ -1,15 +1,27 @@
 import eventSource from 'eventsource';
 import { Server } from 'http';
-import { fetchNode, NodeJsConfig, nodeRoomBootstrap } from 'node-room-client';
+import { fetchNode, NodeJsConfig, NodeResult, nodeRoomBootstrap } from 'node-room-client';
 import { closeNodeRoom } from '../src/utils';
 import { NODE_APP } from './test-applications/todo-application';
 const fetch = require('node-fetch');
 
-// slow down the code
+// some helper functions
+const isPureNetworkLoaded = (result: NodeResult) => {
+    return !result.isLocal && result.status === 'loaded';
+};
 const delayExecution = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const failErrorAfterTimeout = (ms: number) => {
+    return setTimeout(() => {
+        throw new Error('Timeout');
+    }, ms);
+};
+const MUTATION_TIMEOUT = 10000;
+const QUERY_TIMEOUT = 2000;
 
 describe('as-todo-test', () => {
     let nodeRoomServer: Server;
+    // increase timeout
+    jest.setTimeout(50000);
 
     // before all jest
     beforeAll((done) => {
@@ -26,7 +38,7 @@ describe('as-todo-test', () => {
                 canCache: true,
                 defaultRoom: 'TodoRoom',
                 host: 'http://localhost:3000',
-                supportOffline: true,
+                supportOffline: false,
             })
                 .then(() => {
                     console.log('client registered');
@@ -37,37 +49,87 @@ describe('as-todo-test', () => {
     });
 
     test('test as todo', (done) => {
-        // get all todos
-        let counter = 0;
         const subs: any[] = [];
-        const createdTodos: any[] = [];
+        // create a new todo
+        // helper function to create a new todo
+        const createTodo = (title: string, completed: boolean, cb: (result: any) => void) => {
+            const timerRef = failErrorAfterTimeout(MUTATION_TIMEOUT);
+            return fetchNode('AddTodo', { title, completed }).subscribe((result) => {
+                if (isPureNetworkLoaded(result)) {
+                    clearTimeout(timerRef);
+                    setTimeout(() => {
+                        cb(result.data);
+                    }, QUERY_TIMEOUT);
+                }
+            });
+        };
 
-        const subs1 = fetchNode('GetAllTodo', {}).subscribe((result) => {
-            if (counter === 0 && !result.isLocal && result.status === 'loaded') {
-                // first time we get the data from the server
-                expect(result.data.length).toBe(0);
-                counter++;
+        class TodoListener {
+            private static instance: TodoListener;
+            private result!: NodeResult;
+            private createdTodos: any[] = [];
+
+            private constructor() {}
+
+            public static getInstance() {
+                if (!TodoListener.instance) {
+                    TodoListener.instance = new TodoListener();
+                }
+                return TodoListener.instance;
             }
 
-            if (createdTodos.length !== 0 && counter === 1 && !result.isLocal && result.status === 'loaded') {
-                // new todo is created
-                expect(result.data.length).toBe(1);
-                expect(result.data[0].id).toBe(createdTodos[0].id);
-                expect(result.data[0]).toEqual(createdTodos[0]);
-                counter++;
+            // new todo result
+            public onNewTodoResult(result: NodeResult) {
+                this.result = result;
+            }
 
-                subs.forEach((sub) => sub.unsubscribe());
-                done();
+            // test for created todos
+            public testCreatedTodos(createdTodo: any[]) {
+                // if we are testing for creation then result should have required data
+                // there is no need to wait for the result here
+                if (isPureNetworkLoaded(this.result)) {
+                    // createdTodo should be equal to the result.data as array
+                    try {
+                        expect(this.result.data.length).toBe(createdTodo.length);
+                        console.log(this.result.data, 'DATA' , createdTodo)
+                        expect(this.result.data).toEqual(createdTodo);
+                    } catch (error) {
+                        done(error);
+                    }
+                    this.createdTodos = createdTodo;
+                } else {
+                    // fail
+                    throw new Error('Result is not loaded');
+                }
+            }
+        }
+
+        const subs1 = fetchNode('GetAllTodo', {}).subscribe((result) => {
+            if (isPureNetworkLoaded(result)) {
+                TodoListener.getInstance().onNewTodoResult(result);
             }
         });
 
         subs.push(subs1);
 
-        // add todo
-        const subs2 = fetchNode('AddTodo', { title: 'test 1', completed: false }).subscribe((result) => {
-            if (result.status === 'loaded') {
-                createdTodos.push(result.data);
-            }
+        // add 3 todos
+        // mutation node run first then query node
+        // if we get the result then after query node will push the result
+        const subs2 = createTodo('test', false, (result1) => {
+            TodoListener.getInstance().testCreatedTodos([result1]);
+            const subs3 = createTodo('test2', false, (result2) => {
+                TodoListener.getInstance().testCreatedTodos([result1, result2]);
+                const subs4 = createTodo('test3', false, (result3) => {
+                    TodoListener.getInstance().testCreatedTodos([result1, result2, result3]);
+                    // completed
+                    subs.forEach((p) => p.unsubscribe());
+                    done();
+                });
+
+                subs.push(subs4);
+            });
+
+            subs.push(subs3);
         });
 
         subs.push(subs2);
