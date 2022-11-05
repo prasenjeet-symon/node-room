@@ -161,8 +161,7 @@ export class NodeRoomBootstrap {
         };
 
         sse.onerror = (event: any) => {
-           // console.log('sse error', event);
+            // console.log('sse error', event);
         };
-        
     }
 }

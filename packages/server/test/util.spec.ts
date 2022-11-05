@@ -14,7 +14,7 @@ describe('test generatePositionalRef', () => {
             { id: 4, name: 'd' },
         ];
 
-        const ref = generatePositionalRef(originalArr, addedElement);
+        const ref = generatePositionalRef(originalArr, addedElement, 'id');
         expect(ref).toEqual([
             { id: 2, name: 'b', pRef: 1 },
             { id: 4, name: 'd', pRef: 3 },
@@ -152,18 +152,25 @@ describe('test delta function', () => {
         expect(delta).toEqual([{ id: 1, nr: false, age: 21, address: { city: 'America' } }]);
     });
 
-    test('no prev value arr delta', async ()=>{
-        const prevValue: any[] = [
-            { id: 1, name: 'Harry', age: 20, address: { city: 'London', country: 'UK' } },
-        ];
+    test('delta for no change', async () => {
+        const prevValue = { id: 1, name: 'John', age: 30 };
+
+        const newValue = { id: 1, name: 'John', age: 30 };
+
+        const delta = findDelta(prevValue, newValue, 'id');
+        expect(delta).toEqual({});
+    });
+
+    test('no prev value arr delta', async () => {
+        const prevValue: any[] = [{ id: 1, name: 'Harry', age: 20, address: { city: 'London', country: 'UK' } }];
         const newValue = [
             { id: 1, name: 'Harry', age: 20, address: { city: 'London', country: 'UK' } },
             { id: 2, name: 'John', age: 30 },
         ];
 
         const delta = findDelta(prevValue, newValue, 'id');
-        expect(delta).toEqual([{ id: 2, nr: true, pRef:1, name: 'John', age: 30 }]);
-    })
+        expect(delta).toEqual([{ id: 2, nr: true, pRef: 1, name: 'John', age: 30 }]);
+    });
 
     test('new element added to the old array', async () => {
         const prevValue = [
@@ -235,23 +242,23 @@ describe('test new object maker from delta and old value', () => {
         expect(finalValue).toEqual(newValue);
     });
 
-    test('prev no value then new value', async ()=>{
+    test('prev no value then new value', async () => {
         const prevValue = null;
         const newValue = { id: 1, name: 'Harry', age: 21, address: { city: 'America', country: 'UK' } };
 
         const delta = findDelta(prevValue, newValue, 'id');
         const finalValue = findNewValueFromDelta(prevValue, delta, 'id');
         expect(finalValue).toEqual(newValue);
-    })
+    });
 
-    test('prev no value then new value arr', async ()=>{
+    test('prev no value then new value arr', async () => {
         const prevValue: any[] = [];
         const newValue = [{ id: 1, name: 'Harry', age: 21, address: { city: 'America', country: 'UK' } }];
 
         const delta = findDelta(prevValue, newValue, 'id');
         const finalValue = findNewValueFromDelta(prevValue, delta, 'id');
         expect(finalValue).toEqual(newValue);
-    })
+    });
 
     test('element get updated', async () => {
         const prevValue = { id: 1, name: 'Harry', age: 20, address: { city: 'London', country: 'UK' } };

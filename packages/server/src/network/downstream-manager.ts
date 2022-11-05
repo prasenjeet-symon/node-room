@@ -72,7 +72,7 @@ export class DownStreamManager {
                 return {
                     nodeIdentifier: p.nodeIdentifier,
                     id: p.id,
-                    delta: findDelta(p.result, p.latestResult, p.id),
+                    delta: findDelta(JSON.parse(JSON.stringify(p.result)), JSON.parse(JSON.stringify(p.latestResult)), p.id),
                 };
             })
             .filter((p) => !isDeltaEmpty(p.delta));

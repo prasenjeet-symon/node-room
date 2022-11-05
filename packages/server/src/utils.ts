@@ -104,12 +104,12 @@ export function valueType(value: any) {
  * Generate positional ref
  *
  */
-export function generatePositionalRef(newArr: any[], newEle: any[]) {
-    newEle.forEach((ele) => {
-        const index = newArr.findIndex((val) => val.id === ele.id);
+export function generatePositionalRef(newArr: any[], newEle: any[], id: string) {
+    for (const ele of newEle) {
+        const index = newArr.findIndex((val) => val[id] === ele[id]);
         const upperEleIndex = newArr[index - 1];
-        ele.pRef = upperEleIndex === undefined ? null : upperEleIndex.id;
-    });
+        ele['pRef'] = upperEleIndex === undefined ? null : upperEleIndex[id];
+    }
 
     return newEle;
 }
@@ -153,22 +153,15 @@ export function mergeMissingValues(old_data: any, new_data: any) {
 }
 
 export function findDelta(oldData: any, newData: any, id: string) {
-    // if the value type of old data and new data is different then return new data
     if (valueType(oldData) !== valueType(newData)) {
         return newData;
     }
 
-    // ok , value type of old data and new data is same
-    // if the value type of old data is primitive then return new data
     if (valueType(oldData) === 'primitive') {
         return newData;
     }
 
-    // ok , value type of old data is not primitive now , so it is object or array
-
-    // if the value type of old data is array
     if (valueType(oldData) === 'array') {
-        // this means new data is array also
         const isAllElementObjectFinalData = newData.every((element: any) => {
             return isObject(element);
         });
@@ -177,7 +170,6 @@ export function findDelta(oldData: any, newData: any, id: string) {
             return isObject(element);
         });
 
-        // if the elements of both array are object then we can compare them
         if (isAllElementObjectFinalData && isAllElementObjectPrevData) {
             // every elements of both array should contain id as provided in id param
             const isIdsFinalData = newData.every((element: any) => {
@@ -191,30 +183,32 @@ export function findDelta(oldData: any, newData: any, id: string) {
             if (isIdsFinalData && isIdsPrevData) {
                 const newElements: any[] = [];
 
-                newData.forEach((element: any) => {
-                    const found = oldData.filter((prev_ele: any) => prev_ele[id] === element[id]);
-                    if (found.length === 0) {
+                for (const element of newData) {
+                    const found = oldData.find((oldElement: any) => oldElement[id] === element[id]);
+                    if (!found) {
                         // this is new element
+                        // nr -> new row
                         element['nr'] = true;
                         newElements.push(element);
                     }
-                });
+                }
 
                 // attach the positional ref to new elements
-                const referencedEle = generatePositionalRef(newData, newElements);
+                const referencedEle = generatePositionalRef(newData, newElements, id);
 
                 const deletedElements: any[] = [];
-                oldData.forEach((element: any) => {
-                    const found = newData.filter((final_ele: any) => final_ele[id] === element[id]);
-                    if (found.length === 0) {
+                for (const element of oldData) {
+                    const found = newData.find((newElement: any) => newElement[id] === element[id]);
+                    if (!found) {
                         // this is deleted element
-                        deletedElements.push({ dr: true, id: element[id] });
+                        // dr -> deleted row
+                        deletedElements.push({ dr: true, [id]: element[id] });
                     }
-                });
+                }
 
                 const updatedElements: any[] = [];
-                newData.forEach((element: any) => {
-                    const foundOld = oldData.find((prev_ele: any) => prev_ele[id] === element[id]);
+                for (const element of newData) {
+                    const foundOld = oldData.find((oldElement: any) => oldElement[id] === element[id]);
                     if (foundOld) {
                         // element is in old data
                         // check for the difference as two objects
@@ -227,16 +221,13 @@ export function findDelta(oldData: any, newData: any, id: string) {
                             updatedElements.push(deltaObj);
                         }
                     }
-                });
+                }
 
                 return [...referencedEle, ...deletedElements, ...updatedElements];
             } else {
                 return newData;
             }
         } else {
-            // if the elements of both array are not object then we can not compare them
-            // just return the new data
-            // element of arr may be primitive or array ( multidimensional array )
             return newData;
         }
     }
@@ -252,7 +243,7 @@ export function findDelta(oldData: any, newData: any, id: string) {
         const { old_data, new_data } = mergeKeysOfObjects(oldData, newData);
         const deltaFinalObj: any = {};
 
-        Object.keys(new_data).forEach((key) => {
+        for (const key of Object.keys(new_data)) {
             const oldValue = old_data[key];
             const newValue = new_data[key];
 
@@ -274,7 +265,7 @@ export function findDelta(oldData: any, newData: any, id: string) {
             } else {
                 deltaFinalObj[key] = delta;
             }
-        });
+        }
 
         return deltaFinalObj;
     }
@@ -282,7 +273,12 @@ export function findDelta(oldData: any, newData: any, id: string) {
     return newData;
 }
 
+/**
+ * This function support three data type -> primitive , array and object
+ * Primitive value as supported by the JSON
+ */
 export function findNewValueFromDelta(oldValue: any, delta: any, id: string) {
+    // if we are receiving the different data type then just return the new value ( delta )
     if (valueType(delta) !== valueType(oldValue)) {
         return delta;
     }
@@ -294,10 +290,14 @@ export function findNewValueFromDelta(oldValue: any, delta: any, id: string) {
 
     // if the value is array
     if (valueType(delta) === 'array') {
+        // check if all the elements of the array is object or not
+        // old value
         const isAllElementObjects = oldValue.every((element: any) => {
             return isObject(element);
         });
 
+        // check if all the elements of the array is object or not
+        // delta value
         const isAllElementObjectDelta = delta.every((element: any) => {
             return isObject(element);
         });
@@ -312,6 +312,7 @@ export function findNewValueFromDelta(oldValue: any, delta: any, id: string) {
             });
 
             if (isOldEleIds && isNewEleIds) {
+                // delta consist of three mutation type ( create , update and delete )
                 const allNewElements: any[] = delta.filter((element: any) => {
                     return element.hasOwnProperty('nr') && element.nr === true;
                 });
@@ -325,60 +326,65 @@ export function findNewValueFromDelta(oldValue: any, delta: any, id: string) {
                 });
 
                 const newElements: any[] = [];
-
-                // merge the new item at the proper position
-                allNewElements.forEach((element: any) => {
+                // merge the new item at the proper positions
+                for (const element of allNewElements) {
+                    // if this is creation row then it must contain pRef with value equal to 'id' or null
                     const ref = element.pRef;
-                    if (ref === null) {
+                    if (!ref) {
+                        // there should be no row on top of this row
                         // push to the top of the array
-                        // delete the ref and nr key
+                        // delete the ref and nr key generated by the node room
                         delete element.pRef;
                         delete element.nr;
                         oldValue.unshift(element);
                     } else {
-                        // there is relation
                         const indexOfRef = oldValue.findIndex((ele: any) => ele[id] === ref);
                         if (indexOfRef !== -1) {
                             delete element.pRef;
                             delete element.nr;
                             // if the index is found then insert the element at that index
-                            oldValue = [...oldValue.slice(0, indexOfRef + 1), element, ...oldValue.slice(indexOfRef + 1)];
+                            oldValue.splice(indexOfRef + 1, 0, element);
                         }
                     }
-                });
+                }
 
-                oldValue.forEach((element: any) => {
+                // merge the update delta and delete delta
+                for (const element of oldValue) {
                     const foundDeleted = allDeleteElements.find((ele: any) => ele[id] === element[id]);
                     if (!foundDeleted) {
-                        // this element is not deleted
-                        // check for the updated elements
+                        // this row is not deleted
+                        // check for the update
                         const foundUpdated = allUpdatedElements.find((ele: any) => ele[id] === element[id]);
                         if (foundUpdated) {
-                            // this element is updated
+                            // this row is updated
                             // so we need to add this element to newElements
                             delete foundUpdated.nr;
-                            // merge the old and updated element
-                            Object.keys(foundUpdated).forEach((uKey) => {
+                            // merge the old and updated properties of the updated row
+                            for (const uKey of Object.keys(foundUpdated)) {
                                 const oldEleKeyVal = element[uKey];
                                 const newEleKeyVal = foundUpdated[uKey];
                                 const newValue = findNewValueFromDelta(oldEleKeyVal, newEleKeyVal, id);
                                 element[uKey] = newValue;
-                            });
+                            }
+
                             newElements.push(element);
                         } else {
-                            // this element is not updated
-                            // so we need to add this element to newElements
+                            // this row is not updated
+                            // so we need to add this element as it is to the final array
                             newElements.push(element);
                         }
                     }
-                });
+                }
 
                 return newElements;
             } else {
+                // delta's elements are not collections of rows
+                // just return the delta as latest value
                 return delta;
             }
         } else {
-            // delta elements is either primitive or array ( no change )
+            // delta's elements are not collections of rows
+            // just return the delta as latest value
             return delta;
         }
     }
@@ -388,10 +394,9 @@ export function findNewValueFromDelta(oldValue: any, delta: any, id: string) {
         const { old_data, new_data } = mergeMissingValues(oldValue, delta);
         const deltaFinalObj: any = {};
 
-        Object.keys(new_data).forEach((key) => {
-            // we need to recursively call this function to find the delta
+        for (const key of Object.keys(new_data)) {
             deltaFinalObj[key] = findNewValueFromDelta(old_data[key], new_data[key], id);
-        });
+        }
 
         return deltaFinalObj;
     }
