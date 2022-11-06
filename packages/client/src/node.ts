@@ -24,7 +24,7 @@ export class Node {
 
     public call(nodeName: string, paramObject: any, config?: NodeCallConfig) {
         if (!nodeName) throw new Error('Node name is required');
-        if (!paramObject) throw new Error('Param object is required');
+        if (!paramObject) throw new Error('Param object is required. If your node do not accept any parameters then just pass the empty object');
 
         const nodeConfig = NodeRoomBootstrap.getInstance().getNodeRoomConfig();
 
@@ -63,22 +63,21 @@ export class NodeCleaner {
         return NodeCleaner._instance;
     }
 
+    /** Clean all the memory captured by the nodeRoom */
     public clean(paginationID: string) {
-        // incoming node is no longer required
-        // clear the memory
         HttpPagination.getInstance().clearHistory(paginationID);
         HttpDataEmitter.getInstance().markComplete(paginationID);
         NodeIdentifierRelations.getInstance().removeRelation(paginationID);
     }
 
-    // listen for modification node
+    /** listen for modification node */
     public listenForModificationNode(hook: (paginationID: string) => void) {
         this.hookForModificationNode = hook;
     }
 
-    // call hook for modification node
+    /** call hook for modification node, usually called by nodeRoom, do not call if not sure what are you doing */
     public callHookForModificationNode(paginationID: string) {
-        if(this.hookForModificationNode){
+        if (this.hookForModificationNode) {
             this.hookForModificationNode(paginationID);
         }
     }

@@ -1,6 +1,6 @@
 import { BehaviorSubject } from 'rxjs';
 import { NodeRoomBootstrap } from '../bootstrap';
-import { NodeResult, HttpSelect } from '../modal';
+import { HttpSelect, NodeResult } from '../modal';
 import { OfflineManager } from './offline-manager';
 
 export class HttpDataEmitter {
@@ -16,10 +16,13 @@ export class HttpDataEmitter {
         return HttpDataEmitter._instance;
     }
 
-    // get the data emitter
+    /** Get the new data emitter */
     public getNewSource(paginationID: string): BehaviorSubject<NodeResult> {
         if (!this.httpDataEmitter.has(paginationID)) {
-            this.httpDataEmitter.set(paginationID, new BehaviorSubject<NodeResult>({ paginationID: paginationID, nodeRelationID: paginationID, data: null, error: null, isLocal: false, status: 'loading' }));
+            this.httpDataEmitter.set(
+                paginationID,
+                new BehaviorSubject<NodeResult>({ paginationID: paginationID, nodeRelationID: paginationID, data: null, error: null, isLocal: false, status: 'loading' }),
+            );
         }
 
         return this.httpDataEmitter.get(paginationID) as BehaviorSubject<NodeResult>;
@@ -35,8 +38,9 @@ export class HttpDataEmitter {
     public patchData(paginationID: string, data: Partial<NodeResult>) {
         if (this.httpDataEmitter.has(paginationID)) {
             const currentData = this.httpDataEmitter.get(paginationID)?.getValue();
-            const newData = { ...currentData, ...data };
-            this.httpDataEmitter.get(paginationID)?.next(JSON.parse(JSON.stringify(newData)));
+            const newData = { ...currentData, ...data } as NodeResult;
+            Object.freeze(newData);
+            this.httpDataEmitter.get(paginationID)?.next(newData);
         }
     }
 
@@ -47,7 +51,6 @@ export class HttpDataEmitter {
     public emitError(paginationID: string, error: any) {
         this.patchData(paginationID, { error: error, status: 'error' });
     }
-
     /**
      * Emit the data and complete the source
      */
@@ -70,7 +73,7 @@ export class HttpDataEmitter {
 
 export class HttpSelectManager {
     static _instance: HttpSelectManager;
-    private cachedNodes: Map<string, HttpSelect> = new Map();
+    private cachedNodes: Map<string, HttpSelect> = new Map(); // nodeIdentifier --> HttpSelect
 
     private constructor() {}
 

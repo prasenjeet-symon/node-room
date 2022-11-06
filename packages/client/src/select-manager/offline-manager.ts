@@ -25,11 +25,6 @@ export class OfflineManager {
     }
 
     public setLocal(nodeIdentifier: string, data: HttpSelect) {
-        // if we are on the nodejs env just return
-        // this may be useful for the testing this client
-
-        if (typeof window === 'undefined') return;
-
         const localId: string = simpleNodeUUID(data.roomName, data.nodeName, data.paramObject);
         const localData: LocalStorage = {
             nodeIdentifier: nodeIdentifier,
@@ -40,11 +35,6 @@ export class OfflineManager {
     }
 
     public async fetch(httpCall: HttpNetworkFetch) {
-        // if we are on the nodejs env just return
-        // this may be useful for the testing this client
-
-        if (typeof window === 'undefined') return;
-
         const localData = await this.getLocal(httpCall.roomName, httpCall.nodeName, httpCall.paramObject);
         if (localData) {
             const localDataForPagination: HttpSelect | undefined = {
@@ -57,7 +47,7 @@ export class OfflineManager {
 
             HttpPagination.getInstance().sendData(localDataForPagination, localData.nodeIdentifier, httpCall.paginationID, true);
         } else {
-            console.warn(`No offline data found for ${httpCall.roomName}  ${httpCall.nodeName}  ${httpCall.paramObject}`);
+            console.warn(`No offline data found for ${httpCall.roomName}-->${httpCall.nodeName}-->${httpCall.paramObject}`);
         }
     }
 }

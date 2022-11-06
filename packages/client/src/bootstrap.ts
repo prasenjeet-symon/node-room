@@ -10,10 +10,10 @@ import { isNode, LocalStorageUniversal, NodeJsConfig } from './utils';
  */
 export async function nodeRoomBootstrap(config: BootStrapConfig) {
     if (!config) throw new Error('NodeRoom config is required');
-    if (!config.host) throw new Error('NodeRoom host is required');
-    if (!config.defaultRoom) throw new Error('NodeRoom defaultRoom is required');
-    if (!('supportOffline' in config)) throw new Error('NodeRoom supportOffline is required');
-    if (!('canCache' in config)) throw new Error('NodeRoom canCache is required');
+    if (!(config && 'host' in config)) throw new Error('NodeRoom host is required');
+    if (!(config && 'defaultRoom' in config)) throw new Error('NodeRoom defaultRoom is required');
+    if (!(config && 'supportOffline' in config)) throw new Error('NodeRoom supportOffline is required');
+    if (!(config && 'canCache' in config)) throw new Error('NodeRoom canCache is required');
 
     await NodeRoomBootstrap.getInstance().setNodeRoomConfig(config);
     return;
@@ -32,7 +32,7 @@ export function setUniversalUniqueUserIdentifier(universalUniqueUserIdentifier: 
 
 export class NodeRoomBootstrap {
     private static _instance: NodeRoomBootstrap;
-    private clientInstanceUUID: string = nanoid(); // each time we initialize the node room we need to create a new client instance
+    private clientInstanceUUID: string = nanoid();
     private universalUniqueUserIdentifier!: string;
     private nodeRoomConfig!: BootStrapConfig;
 
@@ -62,7 +62,7 @@ export class NodeRoomBootstrap {
         return NodeRoomBootstrap._instance;
     }
 
-    // set the node room config
+    /** Set the NodeRoom configuration */
     public async setNodeRoomConfig(nodeRoomConfig: BootStrapConfig) {
         this.nodeRoomConfig = nodeRoomConfig;
         return this.registerClientInstance().then(() => {
@@ -70,27 +70,29 @@ export class NodeRoomBootstrap {
         });
     }
 
-    // get the node room config
+    /** Get the NodeRoom configuration object */
     public getNodeRoomConfig(): BootStrapConfig {
         return this.nodeRoomConfig;
     }
 
-    // get the client instance uuid
+    /** Get the client instance UUID, that is usually unique for for the given browser instance */
     public getClientInstanceUUID(): string {
         return this.clientInstanceUUID;
     }
 
-    // set the universal unique user identifier
+    /** Set the universal unique user identifier, that is used to identify the user on different machine, useful for nodeRoom analytics */
     public async setUniversalUniqueUserIdentifier(universalUniqueUserIdentifier: string) {
+        // TODO : We may need to sync with server in future, but for now it is ok
+        // Currently all the node call after new universalUniqueUserIdentifier assignment will use new universalUniqueUserIdentifier value
         this.universalUniqueUserIdentifier = universalUniqueUserIdentifier;
     }
 
-    // get universal unique user identifier
+    /** get universal unique user identifier */
     public getUniversalUniqueUserIdentifier(): string {
         return this.universalUniqueUserIdentifier;
     }
 
-    // register this node room client instance to the server
+    /** register this node room client instance to the server */
     private async registerClientInstance() {
         const body = {
             clientInstanceUUID: this.clientInstanceUUID,
@@ -129,10 +131,8 @@ export class NodeRoomBootstrap {
         await runFetch();
     }
 
-    // register the server sent event listener
+    /** register the server sent event listener */
     private registerSSE() {
-        // if we are on the nodejs environment, we need to use the polyfill for the server sent event that is ('eventsource')
-
         let EventSourceFinal: any;
 
         const assignEventSource = () => {
@@ -161,7 +161,7 @@ export class NodeRoomBootstrap {
         };
 
         sse.onerror = (event: any) => {
-            // console.log('sse error', event);
+            console.log('sse error', event);
         };
     }
 }
