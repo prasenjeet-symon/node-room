@@ -57,6 +57,7 @@ export const callMutationNode = (nodeName: string, paramObject: any, cb: (result
     const timerRef = failErrorAfterTimeout(MUTATION_TIMEOUT);
     return fetchNode(nodeName, paramObject).subscribe((result) => {
         if (isPureNetworkLoaded(result)) {
+          
             clearTimeout(timerRef);
             setTimeout(() => {
                 cb(result.data);
