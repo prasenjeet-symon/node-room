@@ -22,6 +22,7 @@ export class HttpPagination {
     }
 
     public sendDataFromDelta(data: HttpSelect | undefined, nodeIdentifier: string, paginationIDS: string[]) {
+        // if emitting data from delta then obviously isLocal is false
         paginationIDS.forEach((paginationID) => {
             this.sendData(data, nodeIdentifier, paginationID);
         });
@@ -70,7 +71,7 @@ export class HttpPagination {
         }
     }
 
-    // clear the history
+    /** Clear the history */
     public clearHistory(paginationID: string) {
         this.paginationHistory.delete(paginationID);
     }

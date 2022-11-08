@@ -214,7 +214,7 @@ Imagine thousands of rows in which only some properties of single row is changed
 
 ### How to talk to NodeRoom from client ?
 
-You can use `node-room-client` package to talk to NodeRoom from client. You can find the documentation of `node-room-client` [here]( https://github.com/node-room/node-room-client ) .
+You can use `node-room-client` package to talk to NodeRoom from client. You can find the documentation of `node-room-client` [here]( https://github.com/prasenjeet-symon/node-room/tree/master/packages/client ) .
 
 This is core client library. We extended this library to create `react-node`. You can find the documentation of `react-node` [here](https://github.com/node-room/react-node) . This is react specific library. You can use this library to talk to NodeRoom from react application.
 

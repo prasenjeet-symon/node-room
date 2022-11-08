@@ -63,13 +63,13 @@ export class HttpNetworkManager {
         const data = await runFetch();
 
         if (data.hasOwnProperty('nodeIdentifier')) {
-            // whenever there is node identifier, it means that the node is select node
+            // whenever there is node identifier, it means that the node is query node
             const nodeIdentifier = data.nodeIdentifier;
             const result = data.result;
 
             const httpSelect: HttpSelect = {
-                nodeName: httpCall.nodeName,
                 roomName: httpCall.roomName,
+                nodeName: httpCall.nodeName,
                 universalUniqueUserIdentifier: httpCall.universalUniqueUserIdentifier,
                 paramObject: httpCall.paramObject,
                 result: result,
@@ -79,7 +79,7 @@ export class HttpNetworkManager {
             HttpPagination.getInstance().sendData(httpSelect, nodeIdentifier, httpCall.paginationID);
             NodeIdentifierRelations.getInstance().pushRelation(nodeIdentifier, httpCall.paginationID);
         } else {
-            // this is modification node with by default select disabled
+            // this is mutation node
             // emit the data to listener immediately
             // complete the stream , because modification is called only one time no further communication is required
             HttpDataEmitter.getInstance().emitDataComplete(httpCall.paginationID, data.result, false);
