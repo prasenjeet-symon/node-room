@@ -1,7 +1,7 @@
 {
-  "name": "node-room-client",
-  "version": "0.1.0",
-  "description": "No more state management",
+  "name": "@noderoom/client",
+  "version": "0.0.0",
+  "description": "Build horizontally scalable realtime application",
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "typings": "build/esm/index.d.ts",
@@ -13,9 +13,9 @@
     "watch": "rollup -cw",
     "test": "rollup -c && jest --coverage"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["realtime","live","state-management", "server"],
+  "author": "prasenjeet-symon",
+  "license": "MIT",
   "dependencies": {
     "nanoid": "^3.3.1",
     "rxjs": "^7.4.0"

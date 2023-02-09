@@ -113,7 +113,7 @@ Practically room is nothing but a class with node as public property. The `@Room
     APP.use(express.json());
 
     // add node room the application
-    const NODE_ROOM_APP = NodeRoom.init(APP,{ clientKillTimeout: 100000, rooms: [TodoRoom], storage: DFStore, broker: NodeBroker, strategy: 'cacheWithClient' }).app();
+    const NODE_ROOM_APP = NodeRoom.init(APP,{ clientKillTimeout: 100000, rooms: [MyFirstNodeRoom], storage: DFStore, broker: NodeBroker, strategy: 'cacheWithClient' }).app();
 
     // start the server
     NODE_APP.listen(3000, () => {

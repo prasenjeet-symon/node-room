@@ -39,7 +39,7 @@ export default async function ({ watch }) {
         output: {
             file: 'build/iife/index-min.js',
             format: 'iife',
-            name: 'node_room_client',
+            name: 'noderoomClient',
         },
     });
 

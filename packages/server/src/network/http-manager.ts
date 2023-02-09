@@ -1,4 +1,3 @@
-import { Request, Response } from 'express';
 import { NodeRunner } from '../dao-runner/dao-runner';
 import { NodeClientRunData, NodeConfig, NodeType } from '../main-interface';
 import { RoomManager } from '../room';
@@ -72,7 +71,7 @@ export class HttpClient {
     private httpClientHash!: string;
     private nodeConfig!: NodeConfig;
 
-    constructor(private request: Request, private response: Response) {
+    constructor(private request: any, private response: any) {
         if (this.request.headers['universal-unique-user-identifier'] !== undefined && this.request.headers['client-instance-uuid'] !== undefined && this.request.headers['can-cache'] !== undefined) {
             this.clientInstanceUUID = this.request.headers['client-instance-uuid'] as string;
             this.canCache = this.request.headers['can-cache'] === '1' ? true : false;

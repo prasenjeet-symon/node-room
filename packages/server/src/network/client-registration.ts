@@ -1,10 +1,9 @@
-import { Request, Response } from 'express';
 import { StorageManager } from '../select-managers/http-select-manager';
 import { ServerManager } from '../server-manager';
 import { ClientInstance, ClientInstanceManager } from './clear-client';
 
 export class ClientRegistration {
-    constructor(private req: Request, private res: Response) {}
+    constructor(private req: any, private res: any) {}
 
     // register
     public async register() {

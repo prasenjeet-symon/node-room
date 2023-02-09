@@ -1,10 +1,5 @@
 {
   "name": "node-room",
-  "version": "0.1.0",
-  "description": "",
-  "scripts": {
-    "test": "jest"
-  },
-  "author": "prasenjeet-symon",
-  "license": "MIT"
+  "version": "0.0.0",
+  "description": "Build horizontally scalable realtime application"
 }

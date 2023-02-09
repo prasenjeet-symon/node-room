@@ -1,8 +1,6 @@
 {
   "extends": "./tsconfig.build.json",
   "include": [
-    "examples",
-    "rollup.config.ts",
     "packages"
   ],
   "compilerOptions": {
@@ -12,16 +10,5 @@
     "typeRoots": [
       "./node_modules/@types",
     ],
-    "paths": {
-      "@NodeRoom/server": [
-        "packages/server/src"
-      ],
-      "@NodeRoom/client": [
-        "packages/client/src"
-      ],
-      "$test/*": [
-        "test/*"
-      ]
-    }
   }
 }

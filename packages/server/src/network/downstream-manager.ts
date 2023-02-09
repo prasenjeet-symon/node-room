@@ -1,4 +1,3 @@
-import { Request, Response } from 'express';
 import { NodeRequeryRunner } from '../dao-runner/dao-runner';
 import { INodeBrokerMsg } from '../main-interface';
 import { RoomManager } from '../room';
@@ -98,7 +97,7 @@ export class DownStreamManager {
 
 // down stream client
 export class DownStreamClient {
-    constructor(private req: Request, private res: Response) {
+    constructor(private req: any, private res: any) {
         // set headers
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
