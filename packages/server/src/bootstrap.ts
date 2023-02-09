@@ -1,5 +1,4 @@
 
-import { Application, Request, Response } from 'express';
 import { NodeRoomConfig } from './main-interface';
 import { ClientInstanceManager } from './network/clear-client';
 import { ClientRegistration } from './network/client-registration';
@@ -12,12 +11,12 @@ import { ServerManager } from './server-manager';
 export class NodeRoom {
     private static instance: NodeRoom;
 
-    public static init(application: Application, config: NodeRoomConfig): NodeRoom {
+    public static init(application: any, config: NodeRoomConfig): NodeRoom {
         if (!NodeRoom.instance) NodeRoom.instance = new NodeRoom(application, config);
         return NodeRoom.instance;
     }
 
-    private constructor(private application: Application, private config: NodeRoomConfig) {
+    private constructor(private application: any, private config: NodeRoomConfig) {
         ServerManager.initInstance(this.config);
         HttpCacheManager.getInstance();
         RoomManager.getInstance();
@@ -31,7 +30,7 @@ export class NodeRoom {
         }
 
         // register the client
-        this.application.post('/node-room-client-registration', (req: Request, res: Response) => {
+        this.application.post('/node-room-client-registration', (req: any, res: any) => {
             new ClientRegistration(req, res)
                 .register()
                 .then(() => {
@@ -44,7 +43,7 @@ export class NodeRoom {
 
         // SSE connection
         // if the client instance do not exit on the distributed cache the do not connect to the downstream
-        this.application.get('/node-room-sse/:clientInstanceUUID', async (req: Request, res: Response) => {
+        this.application.get('/node-room-sse/:clientInstanceUUID', async (req: any, res: any) => {
             if (!('clientInstanceUUID' in req.params)) {
                 res.status(404).send('Not found');
                 return;
@@ -62,7 +61,7 @@ export class NodeRoom {
         });
 
         // attach the post request handler
-        this.application.post('/node-room', (req: Request, res: Response) => {
+        this.application.post('/node-room', (req: any, res: any) => {
             const httpClient = new HttpClient(req, res);
             HttpNetworkManager.getInstance().addHttpClient(httpClient);
         });

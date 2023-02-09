@@ -94,7 +94,7 @@ describe('test delta function', () => {
         expect(delta).toEqual({ age: 21 });
     });
 
-    test('delta function for complex object', async () => {
+    test('delta function for nested object', async () => {
         const prevValue = { id: 1, name: 'Harry', age: 20, address: { city: 'London', country: 'UK' } };
         const newValue = { id: 1, name: 'Harry', age: 21, address: { city: 'London', country: 'UK' } };
 
@@ -102,7 +102,7 @@ describe('test delta function', () => {
         expect(delta).toEqual({ age: 21 });
     });
 
-    test('delta function for complex object', async () => {
+    test('delta function for nested object', async () => {
         const prevValue = { id: 1, name: 'Harry', age: 20, address: { city: 'London', country: 'UK' } };
         const newValue = { id: 1, name: 'Harry', age: 21, address: { city: 'America', country: 'UK' } };
 
@@ -110,7 +110,7 @@ describe('test delta function', () => {
         expect(delta).toEqual({ age: 21, address: { city: 'America' } });
     });
 
-    test('delta function for array', async () => {
+    test('delta function for rows', async () => {
         const prevValue = [
             { id: 1, name: 'Harry', age: 20 },
             { id: 2, name: 'John', age: 30 },
@@ -154,14 +154,13 @@ describe('test delta function', () => {
 
     test('delta for no change', async () => {
         const prevValue = { id: 1, name: 'John', age: 30 };
-
         const newValue = { id: 1, name: 'John', age: 30 };
 
         const delta = findDelta(prevValue, newValue, 'id');
         expect(delta).toEqual({});
     });
 
-    test('no prev value arr delta', async () => {
+    test('new row added', async () => {
         const prevValue: any[] = [{ id: 1, name: 'Harry', age: 20, address: { city: 'London', country: 'UK' } }];
         const newValue = [
             { id: 1, name: 'Harry', age: 20, address: { city: 'London', country: 'UK' } },
@@ -172,7 +171,7 @@ describe('test delta function', () => {
         expect(delta).toEqual([{ id: 2, nr: true, pRef: 1, name: 'John', age: 30 }]);
     });
 
-    test('new element added to the old array', async () => {
+    test('new row added', async () => {
         const prevValue = [
             { id: 1, name: 'Harry', age: 20 },
             { id: 2, name: 'John', age: 30 },
@@ -269,7 +268,7 @@ describe('test new object maker from delta and old value', () => {
         expect(finalValue).toEqual(newValue);
     });
 
-    test('array', async () => {
+    test('pure array', async () => {
         const prevValue = [1, 2, 3, 4, 5];
         const newValue = [1, 2, 3, 4, 5];
 
@@ -439,6 +438,24 @@ describe('test new object maker from delta and old value', () => {
         const finalValue = findNewValueFromDelta(prevValue, delta, 'id');
         expect(finalValue).toEqual(newValue);
     });
+
+    // handle reorder of the rows 
+    // test('handle reorder of the rows', () => {
+    //     const prevValue = [
+    //         { id: 1, name: 'Harry', age: 20, address: { city: 'London', country: 'UK' } },
+    //         { id: 2, name: 'John', age: 30 },
+    //     ];
+
+    //     const newValue = [
+    //         { id: 2, name: 'John', age: 30 },
+    //         { id: 1, name: 'Harry', age: 20, address: { city: 'London', country: 'UK' } },
+    //     ];
+
+    //     const delta = findDelta(prevValue, newValue, 'id');
+
+    //     const finalValue = findNewValueFromDelta(prevValue, delta, 'id');
+    //     expect(finalValue).toEqual(newValue);
+    // });
 });
 
 // test the value type checker
