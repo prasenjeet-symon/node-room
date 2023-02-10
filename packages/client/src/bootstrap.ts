@@ -1,8 +1,6 @@
-import { nanoid } from 'nanoid';
 import { BootStrapConfig, DeltaData } from './modal';
 import { DeltaManager } from './select-manager/delta-manager';
-import { isNode, LocalStorageUniversal, NodeJsConfig } from './utils';
-
+import { generateUUID, isNode, LocalStorageUniversal, NodeJsConfig } from './utils';
 /**
  *  BootStrap node room with the configuration
  * @param config : configuration for the node room
@@ -32,7 +30,7 @@ export function setUniversalUniqueUserIdentifier(universalUniqueUserIdentifier: 
 
 export class NodeRoomBootstrap {
     private static _instance: NodeRoomBootstrap;
-    private clientInstanceUUID: string = nanoid();
+    private clientInstanceUUID: string = generateUUID();
     private universalUniqueUserIdentifier!: string;
     private nodeRoomConfig!: BootStrapConfig;
 
@@ -40,14 +38,14 @@ export class NodeRoomBootstrap {
         // set the clientInstanceUUID
         let clientInstanceUUID = LocalStorageUniversal.instance.getItem('clientInstanceUUID');
         if (!clientInstanceUUID) {
-            clientInstanceUUID = nanoid();
+            clientInstanceUUID = generateUUID();
             LocalStorageUniversal.instance.setItem('clientInstanceUUID', clientInstanceUUID);
         }
 
         // set the universalUniqueUserIdentifier
         let universalUniqueUserIdentifier = LocalStorageUniversal.instance.getItem('universalUniqueUserIdentifier');
         if (!universalUniqueUserIdentifier) {
-            universalUniqueUserIdentifier = nanoid();
+            universalUniqueUserIdentifier = generateUUID();
             LocalStorageUniversal.instance.setItem('universalUniqueUserIdentifier', universalUniqueUserIdentifier);
         }
 

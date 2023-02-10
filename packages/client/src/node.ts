@@ -1,10 +1,11 @@
-import { nanoid } from 'nanoid';
+
 import { NodeRoomBootstrap } from './bootstrap';
 import { HttpNetworkFetch, NodeCallConfig } from './modal';
 import { HttpNetworkManager } from './network/http-manager';
 import { HttpPagination, NodeIdentifierRelations } from './pagination/http-pagination';
 import { HttpDataEmitter } from './select-manager/http-select-manager';
 import { OfflineManager } from './select-manager/offline-manager';
+import { generateUUID } from './utils';
 
 export function fetchNode(nodeName: string, paramObject: any, config?: NodeCallConfig) {
     return Node.getInstance().call(nodeName, paramObject, config);
@@ -13,7 +14,9 @@ export function fetchNode(nodeName: string, paramObject: any, config?: NodeCallC
 export class Node {
     private static _instance: Node;
 
-    private constructor() {}
+    private constructor() {
+        
+    }
 
     public static getInstance(): Node {
         if (!Node._instance) {
@@ -35,7 +38,7 @@ export class Node {
             nodeName: nodeName,
             paramObject: paramObject,
             roomName: config ? ('roomName' in config ? (config.roomName as string) : nodeConfig.defaultRoom) : nodeConfig.defaultRoom,
-            paginationID: config ? ('paginationID' in config ? (config.paginationID as string) : nanoid()) : nanoid(),
+            paginationID: config ? ('paginationID' in config ? (config.paginationID as string) : generateUUID()) : generateUUID(),
             supportOffline: config ? ('supportOffline' in config ? (config.supportOffline as boolean) : nodeConfig.supportOffline) : nodeConfig.supportOffline,
         };
 

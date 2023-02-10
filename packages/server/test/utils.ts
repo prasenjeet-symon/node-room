@@ -1,7 +1,6 @@
+import { fetchNode, NodeJsConfig, NodeResult, nodeRoomBootstrap } from '@noderoom/client';
 import eventSource from 'eventsource';
 import { IncomingMessage, Server, ServerResponse } from 'http';
-import { fetchNode, NodeJsConfig, NodeResult, nodeRoomBootstrap } from 'node-room-client';
-import { Subscription } from 'rxjs';
 import { closeNodeRoom } from '../src/utils';
 import { NODE_APP } from './test-applications/todo-application';
 const fetch = require('node-fetch');
@@ -53,11 +52,10 @@ export const CLOSE_SERVER = (server: Server<typeof IncomingMessage, typeof Serve
     });
 };
 
-export const callMutationNode = (nodeName: string, paramObject: any, cb: (result: any) => void): Subscription => {
+export const callMutationNode = (nodeName: string, paramObject: any, cb: (result: any) => void): any => {
     const timerRef = failErrorAfterTimeout(MUTATION_TIMEOUT);
     return fetchNode(nodeName, paramObject).subscribe((result) => {
         if (isPureNetworkLoaded(result)) {
-          
             clearTimeout(timerRef);
             setTimeout(() => {
                 cb(result.data);

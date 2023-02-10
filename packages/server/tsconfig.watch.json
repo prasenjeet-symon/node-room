@@ -2,7 +2,7 @@
     "extends": "../../tsconfig.json",
     "include": ["src"],
     "compilerOptions": {
-      "lib": ["es2015"],
+      "lib":["es2015"],
       "target": "es2015",
       "noEmit": true,
       "emitDeclarationOnly": true,
