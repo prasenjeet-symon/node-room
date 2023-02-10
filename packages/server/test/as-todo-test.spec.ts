@@ -1,5 +1,5 @@
 import { Server } from 'http';
-import { fetchNode } from 'node-room-client';
+import { fetchNode } from '@noderoom/client';
 import { callMutationNode, CLOSE_SERVER, START_SERVER, TodoListener } from './utils';
 
 describe('as-todo-test', () => {

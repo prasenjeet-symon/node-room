@@ -1,6 +1,3 @@
-import babel from 'rollup-plugin-babel';
-import commonjs from 'rollup-plugin-commonjs';
-import resolve from 'rollup-plugin-node-resolve';
 import replace from 'rollup-plugin-replace';
 import typescript from 'rollup-plugin-typescript2';
 import uglify from 'rollup-plugin-uglify';
@@ -12,13 +9,6 @@ export default async function ({ watch }) {
         plugins: [
             typescript({
                 typescript: require('typescript'),
-            }),
-            resolve({
-                mainFields: ['module'],
-            }),
-            commonjs(),
-            babel({
-                exclude: 'node_modules/**',
             }),
             replace({
                 exclude: 'node_modules/**',
