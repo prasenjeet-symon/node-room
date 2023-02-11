@@ -16,7 +16,7 @@ export default async function ({ watch }) {
                 typescript: require('typescript'),
             }),
             resolve({
-                mainFields: ['main'],
+                mainFields: ['main']
             }),
             commonjs(),
             babel({
@@ -58,9 +58,6 @@ export default async function ({ watch }) {
             file: 'build/iife/index-min.js',
             format: 'iife',
             name: 'nodeRoomClientReact',
-        },
-        global: {
-            react: 'React',
         },
     });
 

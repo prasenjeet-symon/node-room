@@ -36,6 +36,7 @@ export function mutateNode(nodeName: string, paramObject: any, config?: NodeCall
 
     return new Promise<any>((resolve, reject) => {
         const paginationID = config ? ('paginationID' in config ? (config.paginationID as string) : generateUUID()) : generateUUID();
+
         const subs = fetchNode(nodeName, paramObject, { ...config, paginationID: paginationID }).subscribe((data:any) => {
             if (data.error) {
                 reject(data.error);
