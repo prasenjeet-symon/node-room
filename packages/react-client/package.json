@@ -44,8 +44,7 @@
     "typescript": "^4.9.5"
   },
   "dependencies": {
-    "@noderoom/client": "workspace:^0.0.0",
-    "nanoid": "^4.0.0"
+    "@noderoom/client": "workspace:^0.0.0"
   },
   "peerDependencies": {
     "react": "^18.2.0"

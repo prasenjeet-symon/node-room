@@ -1,7 +1,6 @@
-import { nanoid } from 'nanoid';
 import { fetchNode, NodeCallConfig } from '@noderoom/client';
 import { useEffect, useMemo, useState } from 'react';
-import { signalResult } from './main-interface';
+import { generateUUID, signalResult } from './main-interface';
 import { NodeRunner, NodeRunnerManager } from './node-runner';
 export { bootstrapNodeRoom } from './bootstrap';
 
@@ -11,7 +10,7 @@ export function getNode(nodeName: string, paramObject: any, config?: NodeCallCon
     // param object is required or empty object
     if (!paramObject) paramObject = {};
 
-    const paginationID = config ? ('paginationID' in config ? (config.paginationID as string) : nanoid()) : nanoid();
+    const paginationID = config ? ('paginationID' in config ? (config.paginationID as string) : generateUUID()) : generateUUID();
     const [node, setNode] = useState<signalResult>({ data: null, error: null, isLocal: false, paginationID: paginationID, status: 'loading', nodeRelationID: paginationID });
 
     // use memo to avoid re-run
@@ -36,7 +35,7 @@ export function mutateNode(nodeName: string, paramObject: any, config?: NodeCall
     if (!paramObject) paramObject = {};
 
     return new Promise<any>((resolve, reject) => {
-        const paginationID = config ? ('paginationID' in config ? (config.paginationID as string) : nanoid()) : nanoid();
+        const paginationID = config ? ('paginationID' in config ? (config.paginationID as string) : generateUUID()) : generateUUID();
         const subs = fetchNode(nodeName, paramObject, { ...config, paginationID: paginationID }).subscribe((data:any) => {
             if (data.error) {
                 reject(data.error);

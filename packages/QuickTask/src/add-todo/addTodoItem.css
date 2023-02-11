@@ -1,0 +1,21 @@
+.todoInput {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    min-width: 80%;
+}
+
+.todoInput > input:nth-of-type(1) {
+    flex: 1;
+    padding: 10px;
+    outline: none;
+    border-radius: 5px;
+    outline: none;
+    background-color: black;
+    margin-right: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: white;
+    border: 0px;
+    border-bottom: 1px solid gainsboro;
+}
