@@ -16,7 +16,7 @@ export default async function ({ watch }) {
                 typescript: require('typescript'),
             }),
             resolve({
-                mainFields: ['browser'],
+                mainFields: ['main']
             }),
             commonjs(),
             babel({
@@ -43,7 +43,7 @@ export default async function ({ watch }) {
                 chunkFileNames: '[name].js',
             },
         ],
-        external:['react']
+        external: ['react'],
     });
 
     // Minified iife

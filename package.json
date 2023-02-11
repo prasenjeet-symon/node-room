@@ -1,5 +1,9 @@
 {
   "name": "node-room",
   "version": "0.0.0",
-  "description": "Build horizontally scalable realtime application"
+  "description": "Build horizontally scalable realtime application",
+  "dependencies": {
+    "@noderoom/react-client": "workspace:^0.0.0",
+    "@noderoom/server": "workspace:^0.0.0"
+  }
 }
