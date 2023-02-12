@@ -58,6 +58,9 @@ export class HttpPagination {
 
             // pagination means data is array;
             const finalData: any[] = [];
+            const lastNodeResult = paginationData[paginationData.length - 1].data
+            // if last data result is empty then reach end 
+
 
             paginationData.forEach((paginationData) => {
                 const data = paginationData.data;
@@ -67,7 +70,7 @@ export class HttpPagination {
                 }
             });
 
-            HttpDataEmitter.getInstance().emitData(paginationID, finalData, isLocal);
+            HttpDataEmitter.getInstance().emitData(paginationID, finalData, isLocal, lastNodeResult);
         }
     }
 

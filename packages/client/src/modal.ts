@@ -42,6 +42,8 @@ export interface NodeResult {
     isLocal: boolean;
     paginationID: string | null;
     nodeRelationID: string;
+    isLoadingMore: boolean;
+    isReachEnd: boolean;
 }
 
 export interface DeltaData {

@@ -1,11 +1,10 @@
-import { getNode, mutateNode, paginationNode } from '@noderoom/react-client';
+import { getNode, paginationNode } from '@noderoom/react-client';
 import AddTodoItem from './add-todo/addTodoItem';
 import './App.css';
 import TodoItem from './todo-item/todo-item';
 
 let offset = 0;
 const limit = 3;
-
 
 // paginate
 function loadMore(paginationID: string) {
@@ -26,9 +25,14 @@ function App() {
                 })}
 
                 {/* load more button */}
-                {todos.data.length !== 0 ? <button type="button" onClick={() => loadMore(todos.paginationID as string)}>
-                    Load More
-                </button> : ''} 
+                {!todos.isReachEnd && !todos.isLoadingMore ? (
+                    <button type="button" onClick={() => loadMore(todos.paginationID as string)}>
+                        Load More
+                    </button>
+                ) : (
+                    ''
+                )}
+                {todos.isLoadingMore ? <div>Loading more data ...</div> : ''}
             </div>
         );
     } else {

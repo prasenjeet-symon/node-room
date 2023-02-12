@@ -7,6 +7,8 @@ export interface signalResult {
     isLocal: boolean;
     paginationID: string | null;
     nodeRelationID: string | null;
+    isReachEnd: boolean;
+    isLoadingMore:boolean;
 }
 
 export function generateUUID(): string {
