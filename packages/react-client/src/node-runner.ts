@@ -54,6 +54,8 @@ export class NodeRunner {
                 nodeRelationID: data.nodeRelationID,
                 paginationID: data.paginationID,
                 status: data.status,
+                isLoadingMore: data.isLoadingMore,
+                isReachEnd: data.isReachEnd
             });
         });
     }

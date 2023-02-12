@@ -11,7 +11,7 @@ export function getNode(nodeName: string, paramObject: any, config?: NodeCallCon
     if (!paramObject) paramObject = {};
 
     const paginationID = config ? ('paginationID' in config ? (config.paginationID as string) : generateUUID()) : generateUUID();
-    const [node, setNode] = useState<signalResult>({ data: null, error: null, isLocal: false, paginationID: paginationID, status: 'loading', nodeRelationID: paginationID });
+    const [node, setNode] = useState<signalResult>({ data: null, error: null, isLocal: false, paginationID: paginationID, status: 'loading', nodeRelationID: paginationID , isLoadingMore: false, isReachEnd: false});
 
     // use memo to avoid re-run
     useMemo(() => {

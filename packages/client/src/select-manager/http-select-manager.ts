@@ -21,8 +21,22 @@ export class HttpDataEmitter {
         if (!this.httpDataEmitter.has(paginationID)) {
             this.httpDataEmitter.set(
                 paginationID,
-                new BehaviorSubject<NodeResult>({ paginationID: paginationID, nodeRelationID: paginationID, data: null, error: null, isLocal: false, status: 'loading' }),
+                new BehaviorSubject<NodeResult>({
+                    paginationID: paginationID,
+                    nodeRelationID: paginationID,
+                    data: null,
+                    error: null,
+                    isLocal: false,
+                    status: 'loading',
+                    isLoadingMore: false,
+                    isReachEnd: false,
+                }),
             );
+        } else {
+            // loading more data
+            const currentData = this.httpDataEmitter.get(paginationID)?.getValue();
+            const isLoadingMore = currentData?.status === 'loaded'
+            this.patchData(paginationID, { isLoadingMore: isLoadingMore });
         }
 
         return this.httpDataEmitter.get(paginationID) as BehaviorSubject<NodeResult>;
@@ -44,8 +58,8 @@ export class HttpDataEmitter {
         }
     }
 
-    public emitData(paginationID: string, data: any, isLocal: boolean) {
-        this.patchData(paginationID, { data: data, error: null, status: 'loaded', isLocal: isLocal });
+    public emitData(paginationID: string, data: any, isLocal: boolean, lastNodeResult:any = null) {
+        this.patchData(paginationID, { data: data, error: null, status: 'loaded', isLocal: isLocal, isLoadingMore: false, isReachEnd : lastNodeResult ? lastNodeResult.result.length === 0 ? true : false : false });
     }
 
     public emitError(paginationID: string, error: any) {
