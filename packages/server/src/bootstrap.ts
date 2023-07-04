@@ -10,9 +10,14 @@ import { ServerManager } from './server-manager';
 
 export class NodeRoom {
     private static instance: NodeRoom;
+    public rooms: any[] = [];
 
     public static init(application: any, config: NodeRoomConfig): NodeRoom {
         if (!NodeRoom.instance) NodeRoom.instance = new NodeRoom(application, config);
+        return NodeRoom.instance;
+    }
+
+    public static getInstance(): NodeRoom {
         return NodeRoom.instance;
     }
 
@@ -23,6 +28,7 @@ export class NodeRoom {
         HttpNetworkManager.getInstance();
         StorageManager.initInstance(config.storage);
         ClientInstanceManager.getInstance();
+        this.rooms = config.rooms;
 
         for (const room of config.rooms) {
             const roomClient = new RoomClient(new room());
@@ -36,7 +42,7 @@ export class NodeRoom {
                 .then(() => {
                     res.send({ status: 'success' });
                 })
-                .catch((err) => {
+                .catch(() => {
                     res.send({ status: 'error' });
                 });
         });

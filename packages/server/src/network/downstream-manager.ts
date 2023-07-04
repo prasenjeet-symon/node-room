@@ -1,6 +1,7 @@
+import { NodeRoom } from '../bootstrap';
 import { NodeRequeryRunner } from '../dao-runner/dao-runner';
 import { INodeBrokerMsg } from '../main-interface';
-import { RoomManager } from '../room';
+import { RoomClient, RoomManager } from '../room';
 import { findDelta, isDeltaEmpty } from '../utils';
 import { HttpCacheManager } from './http-manager';
 
@@ -79,7 +80,7 @@ export class DownStreamManager {
         Promise.all(
             requeryResult.map(async (p) => {
                 return httpCacheManager.updateAffectedNode(p.nodeIdentifier, p.roomName, p.nodeName, p.paramObject, p.latestResult);
-            })
+            }),
         );
 
         // we are sending the delta to the client
@@ -97,11 +98,31 @@ export class DownStreamManager {
 
 // down stream client
 export class DownStreamClient {
+    // when new client is added then send the nodeRoom types downstream on the client
+
     constructor(private req: any, private res: any) {
         // set headers
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
+        this.nodeRoomType();
+    }
+
+    // Send the nodeRoom types
+    public nodeRoomType() {
+        const rooms = NodeRoom.getInstance().rooms;
+        const type = `export interface NodeRoom { 
+            ${rooms
+                .map((room) => {
+                    const roomClient = new RoomClient(new room());
+                    return `
+             ${roomClient.getRoomName()} : {${roomClient.nodeRoomType()} }
+            `;
+                })
+                .join(' ')}
+        };`;
+        console.log(type, 'typetype')
+        this.writeData({ nodeRoomType: type });
     }
 
     // get http client uuid

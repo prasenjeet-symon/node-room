@@ -1,4 +1,4 @@
-import { NodeRoom } from '@noderoom/server';
+import { NodeRoom} from '@noderoom/server';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express, { Express } from 'express';
@@ -8,7 +8,7 @@ import { DFStore, NodeBroker } from './noderoom/utils';
 dotenv.config();
 
 const app: Express = express();
-app.use(cors())
+app.use(cors());
 app.use(express.json());
 
 const port = process.env.PORT;

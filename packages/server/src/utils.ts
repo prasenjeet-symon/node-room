@@ -97,6 +97,8 @@ export function valueType(value: any) {
         return 'array';
     } else if (isObject(value)) {
         return 'object';
+    }else{
+        return 'primitive';
     }
 }
 
@@ -425,6 +427,8 @@ export function isDeltaEmpty(delta: any) {
         return false;
     } else if (isObject(delta)) {
         return Object.keys(delta).length === 0;
+    }else{
+        return true
     }
 }
 

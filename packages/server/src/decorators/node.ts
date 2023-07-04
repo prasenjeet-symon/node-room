@@ -1,7 +1,7 @@
 import { extract_function_param_names } from '../utils';
 
 export function Query() {
-    return function (target: Object, propertyKey: string, descriptor: PropertyDescriptor): PropertyDescriptor {
+    return function (_target: Object, _propertyKey: string, descriptor: PropertyDescriptor): PropertyDescriptor {
         /**
          * Extract the param names of the fetch function
          */

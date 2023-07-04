@@ -2,7 +2,7 @@ import { mutateNode } from '@noderoom/react-client';
 import './todo-item.css';
 
 function markComplete(id: string) {
-    mutateNode('markComplete', { id });
+    mutateNode('markComplete', { id }, {}, 0);
 }
 
 function TodoItem(props: any) {
@@ -18,7 +18,7 @@ function TodoItem(props: any) {
             </div>
             <div>
                 {todoItem.isCompleted ? (
-                    <button  className="completedButton" type="button">
+                    <button onClick={()=> markComplete(todoItem.id)}  className="completedButton" type="button">
                         Completed 😇
                     </button>
                 ) : (

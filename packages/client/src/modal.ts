@@ -31,6 +31,7 @@ export interface BootStrapConfig {
     supportOffline: boolean; // can cache node locally
     defaultRoom: string; // give the default room name to use for every node
     canCache: boolean; // can cache the select node on the server or not
+    mutationDebounceTimeMs: number;
 }
 
 export type LOADING_STATUS = 'loading' | 'loaded' | 'error';

@@ -9,6 +9,7 @@ bootstrapNodeRoom({
     defaultRoom: 'todoRoom',
     host: 'http://localhost:3000',
     supportOffline: true,
+    mutationDebounceTimeMs: 1000
 }).then(() => {
     console.log('ok connected...')
     ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(

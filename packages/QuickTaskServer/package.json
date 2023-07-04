@@ -21,7 +21,7 @@
     "typescript": "^4.9.5"
   },
   "dependencies": {
-    "@noderoom/server": "workspace:^0.0.0",
+    "@noderoom/server": "workspace:^",
     "@types/uuid": "^9.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",

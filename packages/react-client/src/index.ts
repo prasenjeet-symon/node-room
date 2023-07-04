@@ -1,6 +1,7 @@
 import { fetchNode, NodeCallConfig } from '@noderoom/client';
 import { useEffect, useMemo, useState } from 'react';
 import { generateUUID, signalResult } from './main-interface';
+import { MutationLimiter } from './mutation-limiter';
 import { NodeRunner, NodeRunnerManager } from './node-runner';
 export { bootstrapNodeRoom } from './bootstrap';
 
@@ -11,7 +12,16 @@ export function getNode(nodeName: string, paramObject: any, config?: NodeCallCon
     if (!paramObject) paramObject = {};
 
     const paginationID = config ? ('paginationID' in config ? (config.paginationID as string) : generateUUID()) : generateUUID();
-    const [node, setNode] = useState<signalResult>({ data: null, error: null, isLocal: false, paginationID: paginationID, status: 'loading', nodeRelationID: paginationID , isLoadingMore: false, isReachEnd: false});
+    const [node, setNode] = useState<signalResult>({
+        data: null,
+        error: null,
+        isLocal: false,
+        paginationID: paginationID,
+        status: 'loading',
+        nodeRelationID: paginationID,
+        isLoadingMore: false,
+        isReachEnd: false,
+    });
 
     // use memo to avoid re-run
     useMemo(() => {
@@ -28,16 +38,18 @@ export function getNode(nodeName: string, paramObject: any, config?: NodeCallCon
 }
 
 // mutation node
-export function mutateNode(nodeName: string, paramObject: any, config?: NodeCallConfig) {
+export function mutateNode(nodeName: string, paramObject: any, config?: NodeCallConfig, debounceTimeMs: number | null = null) {
     // node name is required
     if (!nodeName) throw new Error('Node name is required');
     // param object is required or empty object
     if (!paramObject) paramObject = {};
 
     return new Promise<any>((resolve, reject) => {
+        if (!MutationLimiter.Instance.canCallNode(config?.roomName, nodeName, paramObject, debounceTimeMs)) return;
+
         const paginationID = config ? ('paginationID' in config ? (config.paginationID as string) : generateUUID()) : generateUUID();
 
-        const subs = fetchNode(nodeName, paramObject, { ...config, paginationID: paginationID }).subscribe((data:any) => {
+        const subs = fetchNode(nodeName, paramObject, { ...config, paginationID: paginationID }).subscribe((data: any) => {
             if (data.error) {
                 reject(data.error);
                 subs.unsubscribe();

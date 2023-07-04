@@ -3,6 +3,8 @@
     "compilerOptions": {
         "declarationDir": "dist",
         "declarationMap": true,
+        "sourceMap": true,
+        "removeComments": true,
     },
     "include": ["src"],
     "exclude": ["test", "**/*.(test|spec).ts"]

@@ -1,4 +1,4 @@
-import { NodeConfig } from "./main-interface";
+import { NodeConfig } from './main-interface';
 
 export class RoomManager {
     private static _instance: RoomManager;
@@ -28,7 +28,7 @@ export class RoomManager {
         return this.rooms.get(roomName)?.getNode(nodeName);
     }
 
-    /** 
+    /**
      * Get node config
      */
     public getNodeConfig(roomName: string, nodeName: string): NodeConfig {
@@ -55,5 +55,14 @@ export class RoomClient {
      */
     public getNode(nodeName: string): any {
         return this.roomInstance.getNode(nodeName);
+    }
+
+    /**
+     *
+     * Get the room type
+     *
+     */
+    public nodeRoomType(): string {
+        return this.roomInstance.nodeRoomType();
     }
 }

@@ -22,6 +22,20 @@ export function Room(name: string) {
                     return undefined;
                 }
             }
+
+            // generate the type of room
+            public nodeRoomType() {
+                // loop over the properties of the class
+                const nodes = Object.getOwnPropertyNames(this);
+                console.log(nodes, 'NODES');
+                return `${this.getRoomName()} : { ${nodes
+                    .map((node) => {
+                        console.log((this as any)[node].prototype);
+                        return new (this as any)[node]().nodeTypes(this.getRoomName());
+                    })
+                    .join(' ')}
+                };`;
+            }
         };
     };
 }
