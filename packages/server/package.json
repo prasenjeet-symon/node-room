@@ -2,9 +2,10 @@
   "name": "@noderoom/server",
   "version": "0.0.0",
   "description": "Build horizontally scalable realtime application",
-  "main": "build/cjs/index.js",
+  "main": "build/esm/index.js",
   "module": "build/esm/index.js",
   "typings": "build/esm/index.d.ts",
+  "type": "module",
   "files": [
     "build"
   ],

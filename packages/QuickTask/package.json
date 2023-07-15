@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@noderoom/nodezen": "workspace:^",
     "@noderoom/react-client": "workspace:^",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

@@ -1,5 +1,4 @@
 import { BootStrapConfig, DeltaData } from './modal';
-import { NodeZen } from './nodezen';
 import { DeltaManager } from './select-manager/delta-manager';
 import { LocalStorageUniversal, NodeJsConfig, generateUUID, isNode } from './utils';
 /**
@@ -156,11 +155,6 @@ export class NodeRoomBootstrap {
             if (data.hasOwnProperty('delta')) {
                 const delta: DeltaData[] = data.delta;
                 DeltaManager.getInstance().settleDelta(delta);
-            }
-
-            // listen for the nodeRoomTypes
-            if (data.hasOwnProperty('nodeRoomType')) {
-                new NodeZen(data.nodeRoomType);
             }
         };
 

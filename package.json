@@ -2,5 +2,7 @@
   "name": "node-room",
   "version": "0.0.0",
   "description": "Build horizontally scalable realtime application",
-  "dependencies": {}
+  "dependencies": {
+    "@noderoom/nodezen": "workspace:^"
+  }
 }
